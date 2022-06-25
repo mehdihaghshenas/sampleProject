@@ -1,0 +1,39 @@
+<div class="app-body">
+  <main class="main d-flex align-items-center">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-8">
+          <div class="card-group">
+            <div class="card p-4">
+              <div class="card-body">
+                <form #loginForm="ngForm" (submit)="submitForm()">
+                  <p class="text-muted">login</p>
+                  <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text"><i class="icon-user"></i></span>
+                    </div>
+                    <input type="text" class="form-control" name="emailorPhoneNumber" ngModel
+                      placeholder="email" autocomplete="username" required>
+                  </div>
+                  <div class="input-group mb-4">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text"><i class="icon-lock"></i></span>
+                    </div>
+                    <input type="password" ngModel class="form-control" name="password"
+                      placeholder="password" autocomplete="current-password" required>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-4">
+                      <button type="submit" appButton class="btn-block">login</button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

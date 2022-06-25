@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UserSecretsId>a46d7c06-a956-4c49-b84e-2217a59089ab</UserSecretsId>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<DockerfileContext>..\..</DockerfileContext>
+		<DockerComposeProjectPath>..\..\docker-compose.dcproj</DockerComposeProjectPath>
+	</PropertyGroup>
+	<ItemGroup>
+	  <Compile Remove="wwwroot\EmailService\**" />
+	  <Content Remove="wwwroot\EmailService\**" />
+	  <EmbeddedResource Remove="wwwroot\EmailService\**" />
+	  <None Remove="wwwroot\EmailService\**" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\BaseProjects\AspNetIdentity\MAction.AspNetIdentityInfrastructure\MAction.AspNetIdentity.Infrastructure.csproj" />
+		<ProjectReference Include="..\..\BaseProjects\AspNetIdentity\MAction.MongoAspNetIdentity\MAction.AspNetIdentity.Mongo.csproj" />
+		<ProjectReference Include="..\Infrastructure\MAction.SampleOnion.Infrastructure.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.15.1" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="wwwroot\" />
+	</ItemGroup>
+</Project>

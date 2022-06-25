@@ -1,0 +1,29 @@
+version: '3.4'
+
+services:
+  MAction.SampleOnion.api:
+    image: ${DOCKER_REGISTRY-}mactionsampleonion
+    build:
+      context: .
+      dockerfile: MAction.SampleOnion/API/Dockerfile
+    networks:
+      - appnet
+  mongodb:
+    image : mongo
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=A1b2c3d4
+    volumes:
+      - ./DockerDataFiles/MongoDBs:/data/db
+
+    ports:
+      - 27017:27017
+    networks:
+      - appnet
+    restart: always
+
+networks:
+  appnet:
+    driver: bridge

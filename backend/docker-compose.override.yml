@@ -1,0 +1,16 @@
+version: '3.4'
+
+services:
+  MAction.SampleOnion.api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      #- ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_URLS=http://+:80
+      #- CONNECTIONSTRINGS__MactionMongoDBConnection="mongodb://root:A1b2c3d4@mongodb:27017/MactionSampleMongo?authSource=admin&readPreference=primary&ssl=false" 
+
+    ports:
+      - 5294:80
+      #- "443"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro

@@ -1,0 +1,18 @@
+<form #companyForm="ngForm" (submit)="submitForm()">
+  <p class="text-muted">Create Company</p>
+  <div class="input-group mb-3">
+    <label title="Company Code">Company Code</label>
+    <input type="text" class="form-control" name="id" ngModel
+      placeholder="id"  required>
+  </div>
+  <div class="input-group mb-4">
+    <label title="CompanyName">Company Name</label>
+    <input type="text" ngModel class="form-control" name="name"
+      placeholder="name"  required>
+  </div>
+  <div class="row">
+    <div class="col-md-4">
+      <button type="submit" appButton class="btn-block">create</button>
+    </div>
+  </div>
+</form>

@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="Utilities\" />
+    <Folder Include="ViewModel\Public\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.Identity.Mongo" Version="8.3.3" />
+    <PackageReference Include="libphonenumber-csharp" Version="8.12.49" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\BaseProjects\AspNetIdentity\MAction.AspNetIdentityBase\MAction.AspNetIdentity.Base.csproj" />
+    <ProjectReference Include="..\..\BaseProjects\MAction.BaseServices\MAction.BaseServices.csproj" />
+    <ProjectReference Include="..\Repository\MAction.SampleOnion.Repository.csproj" />
+    <ProjectReference Include="..\..\BaseProjects\AspNetIdentity\MAction.MongoAspNetIdentity\MAction.AspNetIdentity.Mongo.csproj" />
+  </ItemGroup>
+
+</Project>

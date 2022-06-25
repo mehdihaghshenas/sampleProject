@@ -1,0 +1,11 @@
+<button (click)="createSampleData()" *ngIf="!isLogin">Create Sample Data</button>
+<br/>
+<button (click)="logout()" *ngIf="isLogin">logout</button>
+<br/>
+<a routerLink="/company/list" routerLinkActive="active" ariaCurrentWhenActive="page">List Company</a>
+<br/>
+<a routerLink="/company/create" routerLinkActive="active" ariaCurrentWhenActive="page">Create Company</a>
+<br/>
+<a routerLink="/company/edit" routerLinkActive="active" ariaCurrentWhenActive="page">Edit Company</a>
+
+<router-outlet></router-outlet>
