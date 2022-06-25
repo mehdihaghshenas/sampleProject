@@ -14,227 +14,277 @@ using System.Threading.Tasks;
 
 namespace MAction.BaseServices;
 
-public class BaseService<TEntity, InputModel, OutputModel> : IBaseService<TEntity, InputModel, OutputModel> where TEntity : BaseEntity
+
+public class BaseService<TEntity, TInputModel, TOutputModel> : IBaseService<TEntity, TInputModel, TOutputModel>
+    where TEntity : BaseEntity
 {
+    protected readonly IMapper Mapper;
     private readonly IBaseRepository<TEntity> _repository;
-    private readonly IMapper _mapper;
 
     public BaseService(IBaseRepository<TEntity> repository, IMapper mapper)
     {
+        Mapper = mapper;
         _repository = repository;
-        _mapper = mapper;
     }
 
-    public OutputModel Get(object entityId, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
+    public TOutputModel Get(object entityId, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
     {
         var filter = ExpressionHelpers.GetIdFilter<TEntity>(entityId);
-        var res = GetItemByFilter(new FilterAndSortConditions() { DisablePaging = null, PageNumber = 1, PageSize = 10 }, filter, mappingType);
+        var res = GetItemByFilter(new FilterAndSortConditions() { DisablePaging = null, PageNumber = 1, PageSize = 10 },
+            filter, mappingType);
+        if (res.Data.Count == 0)
+            throw new InvalidEntityException();
+        return res.Data.First();
+    }
+
+    public async Task<TOutputModel> GetAsync(object entityId,
+        OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto,
+        CancellationToken cancellationToken = default)
+    {
+        var filter = ExpressionHelpers.GetIdFilter<TEntity>(entityId);
+        var res = await GetItemByFilterAsync(
+            new FilterAndSortConditions() { DisablePaging = null, PageNumber = 1, PageSize = 10 }, filter, mappingType,
+            cancellationToken);
         if (res.Data.Count == 0)
             throw new InvalidEntityException();
         else
             return res.Data.First();
     }
 
-    public async Task<OutputModel> GetAsync(object entityId, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto, CancellationToken cancellationToken = default)
+    public DynamicQueryFilterResult<TOutputModel> GetItemByFilter(FilterAndSortConditions conditions,
+        Expression<Func<TEntity, bool>> extraWhereCondition = null,
+        OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
     {
-        var filter = ExpressionHelpers.GetIdFilter<TEntity>(entityId);
-        var res = await GetItemByFilterAsync(new FilterAndSortConditions() { DisablePaging = null, PageNumber = 1, PageSize = 10 }, filter, mappingType);
-        return res.Data.First();
+        return GetItemsByFilter<TOutputModel>(conditions, extraWhereCondition, mappingType);
     }
 
-    public DynamicQueryFilterResult<OutputModel> GetItemByFilter(FilterAndSortConditions conditions, Expression<Func<TEntity, bool>> extraWhereCondition = null, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
+    public Task<DynamicQueryFilterResult<TOutputModel>> GetItemByFilterAsync(FilterAndSortConditions conditions,
+        Expression<Func<TEntity, bool>> extraWhereCondition = null,
+        OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto,
+        CancellationToken cancellationToken = default)
     {
-        return GetItemsByFilter<OutputModel>(conditions, extraWhereCondition, mappingType);
+        return GetItemsByFilterAsync<TOutputModel>(conditions, extraWhereCondition, mappingType, cancellationToken);
     }
 
-    public Task<DynamicQueryFilterResult<OutputModel>> GetItemByFilterAsync(FilterAndSortConditions conditions, Expression<Func<TEntity, bool>> extraWhereCondition = null, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto, CancellationToken cancellationToken = default)
-    {
-        return GetItemsByFilterAsync<OutputModel>(conditions, extraWhereCondition, mappingType);
-    }
-
-    public DynamicQueryFilterResult<TEntity> GetItemsByFilter(FilterAndSortConditions filter, Expression<Func<TEntity, bool>> extraWhereCondition = null)
+    public DynamicQueryFilterResult<TEntity> GetItemsByFilter(FilterAndSortConditions filter,
+        Expression<Func<TEntity, bool>> extraWhereCondition = null)
     {
         var query = GetFilterQuery(filter, extraWhereCondition, out var withoutPaging);
         return MapToDynamicFilterResult(filter, query, withoutPaging);
-
     }
 
-    public Task<DynamicQueryFilterResult<TEntity>> GetItemsByFilterAsync(FilterAndSortConditions filter, Expression<Func<TEntity, bool>> extraWhereCondition = null, CancellationToken cancellationToken = default)
+    public Task<DynamicQueryFilterResult<TEntity>> GetItemsByFilterAsync(FilterAndSortConditions filter,
+        Expression<Func<TEntity, bool>> extraWhereCondition = null, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(GetItemsByFilter(filter, extraWhereCondition));
     }
-    public DynamicQueryFilterResult<TResult> GetItemsByFilter<TResult>(FilterAndSortConditions conditions, Expression<Func<TEntity, bool>> extraWhereCondition = null, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
+
+    public DynamicQueryFilterResult<TResult> GetItemsByFilter<TResult>(FilterAndSortConditions conditions,
+        Expression<Func<TEntity, bool>> extraWhereCondition = null,
+        OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
     {
-        if ((mappingType == OutputModelMappingTypeEnum.Auto || mappingType == OutputModelMappingTypeEnum.UseExpression) && this is ISelectWithModelExpression<TEntity, TResult>)
+        switch (mappingType)
         {
-            var selectExpr = (this as ISelectWithModelExpression<TEntity, TResult>).SelectExpression();
-            IQueryable<TResult> resquery = GetFilterQuery(conditions, extraWhereCondition, out var withOutPageingQuery).Select(selectExpr);
-            var res = MapToDynamicFilterResult(conditions, resquery, withOutPageingQuery.Select(selectExpr));
-            return res;
-        }
-        else
-        {
+            case OutputModelMappingTypeEnum.UseMappingModel
+                when this is not ISelectWithModelMapper<TEntity, TResult>:
+                throw new NotImplementedException(
+                    "please inherit your service from ISelectWithModelMapper<TEntity, TResult>");
 
-            if ((mappingType == OutputModelMappingTypeEnum.Auto || mappingType == OutputModelMappingTypeEnum.UseMappingModel) && this is ISelectWithModelMapper<TEntity, TResult>)
-            {
-                var res = MapToDynamicFilterResult(conditions, GetFilterQuery(conditions, extraWhereCondition, out var withOutPageingQuery), withOutPageingQuery);
+            case OutputModelMappingTypeEnum.UseExpression
+                when this is not ISelectWithModelExpression<TEntity, TResult>:
+                throw new NotImplementedException(
+                    "please inherit your service from ISelectWithModelExpression<TEntity, TResult>");
 
-                var t = new DynamicQueryFilterResult<TResult>()
+            case OutputModelMappingTypeEnum.Auto or OutputModelMappingTypeEnum.UseExpression
+                when this is ISelectWithModelExpression<TEntity, TResult>:
                 {
-                    Data = res.Data.Select(x => (this as ISelectWithModelMapper<TEntity, TResult>).MapEntityToOutput(x)).ToList(),
-                    PageNumber = res.PageNumber,
-                    PageSize = res.PageSize,
-                    TotalCount = res.TotalCount
-                };
-                if (conditions?.DisablePaging == true)
+                    var selectExpr = (this as ISelectWithModelExpression<TEntity, TResult>)?.SelectExpression();
+                    var resQuery = GetFilterQuery(conditions, extraWhereCondition, out var withOutPagingQuery)
+                        .Select(selectExpr ?? throw new InvalidOperationException());
+                    var res = MapToDynamicFilterResult(conditions, resQuery, withOutPagingQuery.Select(selectExpr));
+                    return res;
+                }
+            case OutputModelMappingTypeEnum.Auto or OutputModelMappingTypeEnum.UseMappingModel
+                when this is ISelectWithModelMapper<TEntity, TResult>:
                 {
+                    var res = MapToDynamicFilterResult(conditions,
+                        GetFilterQuery(conditions, extraWhereCondition, out var withOutPagingQuery), withOutPagingQuery);
+
+                    var t = new DynamicQueryFilterResult<TResult>()
+                    {
+                        Data = res.Data.Select(x => ((ISelectWithModelMapper<TEntity, TResult>)this).MapEntityToOutput(x))
+                            .ToList(),
+                        PageNumber = res.PageNumber,
+                        PageSize = res.PageSize,
+                        TotalCount = res.TotalCount
+                    };
+                    if (conditions?.DisablePaging != true) return t;
                     t.TotalCount = t.Data.Count;
                     t.PageSize = t.Data.Count;
+                    return t;
                 }
-                return t;
-            }
-            else if (mappingType == OutputModelMappingTypeEnum.Auto || mappingType == OutputModelMappingTypeEnum.UseAutoMapper)
-            {
-                var q = GetFilterQuery(conditions, extraWhereCondition, out var withOutPageingQuery);
-                var count = conditions?.DisablePaging == null ? conditions?.PageSize ?? 0 + 1 : withOutPageingQuery.Count();
-                var t = new DynamicQueryFilterResult<TResult>()
+            case OutputModelMappingTypeEnum.Auto:
+            case OutputModelMappingTypeEnum.UseAutoMapper:
                 {
-                    Data = _mapper.ProjectTo<TResult>(q).ToList(),
-                    PageNumber = conditions?.PageNumber ?? 1,
-                    PageSize = conditions?.PageSize ?? count,
-                    TotalCount = count
-                };
-                if (conditions?.DisablePaging == true)
-                {
+                    var q = GetFilterQuery(conditions, extraWhereCondition, out var withOutPagingQuery);
+                    var count = conditions?.DisablePaging == null
+                        ? conditions?.PageSize ?? 0 + 1
+                        : withOutPagingQuery.Count();
+                    var t = new DynamicQueryFilterResult<TResult>()
+                    {
+                        Data = Mapper.ProjectTo<TResult>(q).ToList(),
+                        PageNumber = conditions?.PageNumber ?? 1,
+                        PageSize = conditions?.PageSize ?? count,
+                        TotalCount = count
+                    };
+                    if (conditions?.DisablePaging != true) return t;
                     t.TotalCount = t.Data.Count;
                     t.PageSize = t.Data.Count == 0 ? 10 : t.Data.Count;
+                    return t;
                 }
-                return t;
-            }
-            else
-            {
-                var countTemp = 0;
-                var res = GetFilterQuery(conditions, extraWhereCondition, out var withOutPageingQuery);
-                try
+            default:
                 {
+                    var countTemp = 0;
+                    var res = GetFilterQuery(conditions, extraWhereCondition, out var withOutPagingQuery);
                     if (conditions?.DisablePaging != null)
-                        countTemp = withOutPageingQuery.Count();
-                }
-                catch
-                {
-                }
-                var count = conditions?.DisablePaging == null ? conditions?.PageSize ?? 0 + 1 : countTemp;
-                var t = new DynamicQueryFilterResult<TResult>();
+                        countTemp = withOutPagingQuery.Count();
 
-                t.Data = res.Select(x => _mapper.Map<TResult>(x)).ToList();
-                t.PageNumber = conditions?.PageNumber ?? 1;
-                t.PageSize = conditions?.PageSize ?? count;
-                t.TotalCount = count;
+                    var count = conditions?.DisablePaging == null ? conditions?.PageSize ?? 0 + 1 : countTemp;
+                    var t = new DynamicQueryFilterResult<TResult>
+                    {
+                        Data = res.Select(x => Mapper.Map<TResult>(x)).ToList(),
+                        PageNumber = conditions?.PageNumber ?? 1,
+                        PageSize = conditions?.PageSize ?? count,
+                        TotalCount = count
+                    };
 
-                if (conditions?.DisablePaging == true)
-                {
+                    if (conditions?.DisablePaging != true) return t;
                     t.TotalCount = t.Data.Count;
                     t.PageSize = t.Data.Count == 0 ? 10 : t.Data.Count;
                     t.PageNumber = 1;
+                    return t;
                 }
-                return t;
-            }
         }
     }
 
-    public Task<DynamicQueryFilterResult<TResult>> GetItemsByFilterAsync<TResult>(FilterAndSortConditions conditions, Expression<Func<TEntity, bool>> extraWhereCondition = null, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto, CancellationToken cancellationToken = default)
+    public Task<DynamicQueryFilterResult<TResult>> GetItemsByFilterAsync<TResult>(FilterAndSortConditions conditions,
+        Expression<Func<TEntity, bool>> extraWhereCondition = null,
+        OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto,
+        CancellationToken cancellationToken = default)
     {
         return Task.FromResult(GetItemsByFilter<TResult>(conditions, extraWhereCondition, mappingType));
     }
 
     //ToDO Move it to repository 
-    private IQueryable<TEntity> GetFilterQuery(FilterAndSortConditions filter, Expression<Func<TEntity, bool>> extraWhereCondition, out IQueryable<TEntity> withoutPaging)
+    private IQueryable<TEntity> GetFilterQuery(FilterAndSortConditions filter,
+        Expression<Func<TEntity, bool>> extraWhereCondition, out IQueryable<TEntity> withoutPaging)
     {
-        IQueryable<TEntity> beforesort = _repository.GetAll();
+        var beforeSort = _repository.GetAll();
 
-        var filterExpr = extraWhereCondition;
         //TODO Add Language filter in futures
         if (filter != null && !string.IsNullOrEmpty(filter.WhereConditionText))
         {
-            //TO DO Add filter Text
+            //TODO Add filter Text
         }
-        if (filterExpr != null)
-        {
-            beforesort = beforesort.Where(filterExpr);
-        }
-        else
-        {
-            beforesort = beforesort.AsQueryable();
-        }
-        //TO DO Add Sort 
-        var sortedQuery = beforesort;
 
-        withoutPaging = beforesort;
+        beforeSort = extraWhereCondition != null ? beforeSort.Where(extraWhereCondition) : beforeSort.AsQueryable();
+        //TODO Add Sort 
+        var sortedQuery = beforeSort;
+
+        withoutPaging = beforeSort;
         if (filter == null || filter.DisablePaging == true)
             return sortedQuery;
-        else
-            return sortedQuery.Skip((filter.PageNumber - 1) * filter.PageSize).Take(filter.PageSize);
+        return sortedQuery.Skip((filter.PageNumber - 1) * filter.PageSize).Take(filter.PageSize);
     }
 
-    protected DynamicQueryFilterResult<TResult> MapToDynamicFilterResult<TResult>(PageParams pageParams, IQueryable<TResult> query, IQueryable<TResult> withoutPagingQuery)
+    private static DynamicQueryFilterResult<TResult> MapToDynamicFilterResult<TResult>(PageParams pageParams,
+        IQueryable<TResult> query, IQueryable<TResult> withoutPagingQuery)
     {
-        if (pageParams == null)
-            pageParams = new PageParams() { DisablePaging = true };
-        if (query == null)
-        {
-            query = pageParams.DisablePaging ?? false ? withoutPagingQuery : withoutPagingQuery.Skip((pageParams.PageNumber - 1) * pageParams.PageSize).Take(pageParams.PageSize);
-        }
-        List<TResult> resList = query.ToList();
+        pageParams ??= new PageParams() { DisablePaging = true };
+        query ??= pageParams.DisablePaging ?? false
+            ? withoutPagingQuery
+            : withoutPagingQuery.Skip((pageParams.PageNumber - 1) * pageParams.PageSize).Take(pageParams.PageSize);
+        var resList = query.ToList();
         var res = new DynamicQueryFilterResult<TResult>
         {
-            Data = resList
+            Data = resList,
+            PageNumber = pageParams.PageNumber,
+            PageSize = pageParams.DisablePaging == true ? resList.Count == 0 ? 10 : resList.Count : pageParams.PageSize,
+            TotalCount = pageParams.DisablePaging switch
+            {
+                null => pageParams.PageSize + 1,
+                true => resList.Count,
+                _ => withoutPagingQuery.Count()
+            }
         };
-        if (pageParams != null)
-        {
-            res.PageNumber = pageParams.PageNumber;
-            res.PageSize = pageParams.DisablePaging == true ? resList.Count == 0 ? 10 : resList.Count : pageParams.PageSize;
-        }
-        res.TotalCount = pageParams.DisablePaging == null ? pageParams.PageSize + 1 : pageParams.DisablePaging == true ? resList.Count : withoutPagingQuery.Count();
         return res;
     }
-    private TEntity GetEntityFromInputModel(InputModel inputModel, OutputModelMappingTypeEnum mappingType)
+
+    private TEntity GetEntityFromInputModel(TInputModel inputModel, OutputModelMappingTypeEnum mappingType)
     {
-        if (mappingType == OutputModelMappingTypeEnum.UseExpression)
-            throw new InvalidOperationException("Can not use Exression mode in input");
-        if (mappingType == OutputModelMappingTypeEnum.UseMappingModel && !(this is IInputModelCustomMapper<TEntity, InputModel>))
-            throw new InvalidOperationException("This class dos not contain CustomMapping implemented");
+        switch (mappingType)
+        {
+            case OutputModelMappingTypeEnum.UseExpression:
+                throw new InvalidOperationException("Can not use Expression mode in input");
+            case OutputModelMappingTypeEnum.UseMappingModel
+                when this is not IInputModelCustomMapper<TEntity, TInputModel>:
+                throw new InvalidOperationException("This class dos not contain CustomMapping implemented");
+            case OutputModelMappingTypeEnum.Auto:
+            case OutputModelMappingTypeEnum.UseAutoMapper:
+            case OutputModelMappingTypeEnum.PureAutoMapper:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(mappingType), mappingType, null);
+        }
+
         TEntity entity;
-        if (this is IInputModelCustomMapper<TEntity, InputModel> && mappingType != OutputModelMappingTypeEnum.UseAutoMapper)
-            entity = (this as IInputModelCustomMapper<TEntity, InputModel>).MapInputToEnity(inputModel);
+        if (this is IInputModelCustomMapper<TEntity, TInputModel> &&
+            mappingType != OutputModelMappingTypeEnum.UseAutoMapper)
+            entity = (this as IInputModelCustomMapper<TEntity, TInputModel>)?.MapInputToEnity(inputModel);
         else
-            entity = _mapper.Map<TEntity>(inputModel);
+            entity = Mapper.Map<TEntity>(inputModel);
         return entity;
     }
 
-    private OutputModel GetOutputModelFromEntity(TEntity entity, OutputModelMappingTypeEnum mappingType)
+    private TOutputModel GetOutputModelFromEntity(TEntity entity, OutputModelMappingTypeEnum mappingType)
     {
-        if (mappingType == OutputModelMappingTypeEnum.UseExpression)
-            throw new InvalidOperationException("Can not use Exression mode in input");
-        if (mappingType == OutputModelMappingTypeEnum.UseMappingModel && !(this is ISelectWithModelMapper<TEntity, OutputModel>))
-            throw new InvalidOperationException("This class dos not contain CustomMapping implemented");
-        OutputModel output;
-        if (this is ISelectWithModelMapper<TEntity, InputModel> && mappingType != OutputModelMappingTypeEnum.UseAutoMapper)
-            output = (this as ISelectWithModelMapper<TEntity, OutputModel>).MapEntityToOutput(entity);
+        switch (mappingType)
+        {
+            case OutputModelMappingTypeEnum.UseExpression:
+                throw new InvalidOperationException("Can not use Expression mode in input");
+            case OutputModelMappingTypeEnum.UseMappingModel
+                when !(this is ISelectWithModelMapper<TEntity, TOutputModel>):
+                throw new InvalidOperationException("This class dos not contain CustomMapping implemented");
+            case OutputModelMappingTypeEnum.Auto:
+            case OutputModelMappingTypeEnum.UseAutoMapper:
+            case OutputModelMappingTypeEnum.PureAutoMapper:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(mappingType), mappingType, null);
+        }
+
+        TOutputModel output;
+        if (this is ISelectWithModelMapper<TEntity, TInputModel> &&
+            mappingType != OutputModelMappingTypeEnum.UseAutoMapper)
+            output = ((ISelectWithModelMapper<TEntity, TOutputModel>)this).MapEntityToOutput(entity);
         else
-            output = _mapper.Map<OutputModel>(entity);
+            output = Mapper.Map<TOutputModel>(entity);
         return output;
     }
 
-    public OutputModel Insert(InputModel inputModel, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
+    public TOutputModel Insert(TInputModel inputModel,
+        OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
     {
-        TEntity entity = GetEntityFromInputModel(inputModel, mappingType);
+        var entity = GetEntityFromInputModel(inputModel, mappingType);
         entity = _repository.InsertWithSaveChange(entity);
         return GetOutputModelFromEntity(entity, mappingType);
     }
 
-    public async Task<OutputModel> InsertAsync(InputModel inputModel, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto, CancellationToken cancellationToken = default)
+    public async Task<TOutputModel> InsertAsync(TInputModel inputModel,
+        OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto,
+        CancellationToken cancellationToken = default)
     {
-        TEntity entity = GetEntityFromInputModel(inputModel, mappingType);
+        var entity = GetEntityFromInputModel(inputModel, mappingType);
         entity = await _repository.InsertWithSaveChangeAsync(entity, cancellationToken);
         return GetOutputModelFromEntity(entity, mappingType);
     }
@@ -244,13 +294,15 @@ public class BaseService<TEntity, InputModel, OutputModel> : IBaseService<TEntit
         return _repository.RemoveWithSaveChangeAsync(id, cancellationToken);
     }
 
-    public void Update(InputModel inputModel, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
+    public void Update(TInputModel inputModel, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
     {
-        TEntity entity = GetEntityFromInputModel(inputModel, mappingType);
+        var entity = GetEntityFromInputModel(inputModel, mappingType);
         _repository.UpdateWithSaveChange(entity);
     }
 
-    public Task<int> UpdateAsync(InputModel inputModel, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto, CancellationToken cancellationToken = default)
+    public Task<int> UpdateAsync(TInputModel inputModel,
+        OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto,
+        CancellationToken cancellationToken = default)
     {
         TEntity entity = GetEntityFromInputModel(inputModel, mappingType);
         return _repository.UpdateWithSaveChangeAsync(entity, cancellationToken);
