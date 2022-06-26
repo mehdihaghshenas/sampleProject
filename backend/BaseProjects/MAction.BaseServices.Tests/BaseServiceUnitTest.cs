@@ -224,6 +224,7 @@ public partial class BaseServiceUnitTest : IDisposable
     [Fact]
     public void TestGetItemByFilter_WithPaging_WhenEntityExists_MustReturnResult()
     {
+        ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
         {
             DisablePaging = false,
@@ -749,6 +750,7 @@ public partial class BaseServiceUnitTest : IDisposable
     [Fact]
     public void TestGetItemsByFilterAsync_WithCondition_WithPureAutoMapperMapping_WhenEntityExists_MustReturnResult()
     {
+        ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
         {
             DisablePaging = true
