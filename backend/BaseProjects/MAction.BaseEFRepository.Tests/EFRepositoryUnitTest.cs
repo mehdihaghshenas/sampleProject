@@ -273,6 +273,7 @@ public partial class EFRepositoryUnitTest : IDisposable
         action.Should().Throw<ArgumentNullException>();
     }
 
+
     [Fact]
     public async Task TestInsertWithSaveChangeAsync_WhenEverythingIsOk_MustAddedToContext()
     {
@@ -285,13 +286,13 @@ public partial class EFRepositoryUnitTest : IDisposable
             YearStartPractice = RandomNumber.Next(),
             Rate = RandomNumber.Next(),
             Offices = new List<Office>
-            {
-                new()
                 {
-                    OfficeId = 10,
-                    AddressDoctor = new AddressDoctor {AddressId = 10, StateName = Country.Name()}
-                }
-            },
+                    new()
+                    {
+                        OfficeId = 10,
+                        AddressDoctor = new AddressDoctor {AddressId = 10, StateName = Country.Name()}
+                    }
+                },
             DoctorId = 10
         };
 
@@ -316,37 +317,10 @@ public partial class EFRepositoryUnitTest : IDisposable
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
         var func = new Func<Task>(async () => await baseRepository.InsertWithSaveChangeAsync(null));
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+
         await func.Should().ThrowAsync<ArgumentNullException>();
     }
 
-    [Fact]
-    public void TestUpdate_WhenEverythingIsOkAndActivityTypeIsNull_MustUpdateSuccessfully()
-    {
-        var doctor = baseRepository.Get(1);
-        doctor.LastName = Name.FullName();
-        doctor.BirthDate = Identification.DateOfBirth();
-        doctor.Language = Lorem.GetFirstWord();
-        doctor.YearStartPractice = RandomNumber.Next();
-
-        baseRepository.Update(doctor);
-        baseRepository.SaveChanges();
-
-        var updatedDoctor = baseRepository.Get(1);
-        updatedDoctor.LastName.Should().Be(doctor.LastName);
-        updatedDoctor.BirthDate.Should().Be(doctor.BirthDate);
-        updatedDoctor.Language.Should().Be(doctor.Language);
-        updatedDoctor.YearStartPractice.Should().Be(doctor.YearStartPractice);
-    }
-
-    [Fact]
-    public void TestUpdate_WhenEntityIsNull_MustThrowException()
-    {
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-        var action = new Action(() => baseRepository.Update(null));
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-
-        action.Should().Throw<ArgumentNullException>();
-    }
 
     [Fact]
     public void TestUpdateWithSaveChange_WhenEverythingIsOkAndActivityTypeIsNull_MustUpdateSuccessfully()
@@ -365,6 +339,7 @@ public partial class EFRepositoryUnitTest : IDisposable
         updatedDoctor.Language.Should().Be(doctor.Language);
         updatedDoctor.YearStartPractice.Should().Be(doctor.YearStartPractice);
     }
+
 
     [Fact]
     public void TestUpdateWithSaveChange_WhenEntityIsNull_MustThrowException()
@@ -394,6 +369,7 @@ public partial class EFRepositoryUnitTest : IDisposable
         updatedDoctor.YearStartPractice.Should().Be(doctor.YearStartPractice);
     }
 
+
     [Fact]
     public async Task TestUpdateWithSaveChangeAsync_WhenEntityIsNull_MustThrowException()
     {
@@ -403,40 +379,6 @@ public partial class EFRepositoryUnitTest : IDisposable
 
         await func.Should().ThrowAsync<ArgumentNullException>();
     }
-
-    [Fact]
-    public void TestRemove_WhenEverythingIsOkAndActivityTypeIsNull_MustRemoveSuccessfully()
-    {
-        var doctor = baseRepository.Get(1);
-        baseRepository.Remove(doctor);
-        baseRepository.SaveChanges();
-
-        var doctors = baseRepository.GetAll();
-        doctors.Should().HaveCount(3);
-    }
-
-    [Fact]
-    public void TestRemove_WhenEverythingIsOkAndActivityTypeHasValue_MustRemoveSuccessfully()
-    {
-        var doctor = baseRepository.Get(1);
-        baseRepository.Remove(doctor);
-        baseRepository.SaveChanges();
-
-        var doctors = baseRepository.GetAll();
-        doctors.Should().HaveCount(3);
-    }
-
-
-    [Fact]
-    public void TestRemove_WhenEntityIsNull_MustThrowException()
-    {
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-        var action = new Action(() => baseRepository.Remove(null));
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-
-        action.Should().Throw<ArgumentNullException>();
-    }
-
 
     [Fact]
     public void TestRemoveWithSaveChange_WhenEverythingIsOk_MustRemoveSuccessfully()
@@ -454,6 +396,26 @@ public partial class EFRepositoryUnitTest : IDisposable
 
         var doctors = baseRepository.GetAll();
         doctors.Should().HaveCount(3);
+    }
+
+
+    [Fact]
+    public void TestRemove_WhenEntityIsNull_MustException()
+    {
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+        var action = new Action(() => baseRepository.Remove(null));
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+        action.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task TestRemoveAsync_WhenEntityIsNull_MustException()
+    {
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+        var func = new Func<Task>(async () => await baseRepository.RemoveAsync(null));
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+        await func.Should().ThrowAsync<ArgumentNullException>();
+
     }
 
 }
