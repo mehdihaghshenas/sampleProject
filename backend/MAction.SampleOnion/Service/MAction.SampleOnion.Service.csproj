@@ -9,7 +9,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AspNetCore.Identity.Mongo" Version="8.3.3" />
-    <PackageReference Include="libphonenumber-csharp" Version="8.12.49" />
+    <PackageReference Include="libphonenumber-csharp" Version="8.12.51.1" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\BaseProjects\AspNetIdentity\MAction.AspNetIdentityBase\MAction.AspNetIdentity.Base.csproj" />

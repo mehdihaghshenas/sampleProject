@@ -4,9 +4,9 @@
 		<Nullable>enable</Nullable>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="MongoDB.Driver" Version="2.16.0"/>
+		<PackageReference Include="MongoDB.Driver" Version="2.16.1" />
 	</ItemGroup>
 	<ItemGroup>
-		<ProjectReference Include="..\MAction.BaseClasses\MAction.BaseClasses.csproj"/>
+		<ProjectReference Include="..\MAction.BaseClasses\MAction.BaseClasses.csproj" />
 	</ItemGroup>
 </Project>
