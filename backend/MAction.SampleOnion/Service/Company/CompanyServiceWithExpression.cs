@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using MAction.BaseClasses;
+using MAction.BaseClasses.Exceptions;
 using MAction.BaseMongoRepository;
 using MAction.BaseServices;
 using MAction.SampleOnion.Domain.Entity.SAL;
@@ -21,8 +22,11 @@ public class CompanyServiceWithExpression : BaseServiceInt<SaleCompany, SaleComp
     ISelectWithModelExpression<SaleCompany, SaleCompanyOutputModel>,
     IInputModelCustomMapper<SaleCompany, SaleCompanyInputModel>
 {
+    private readonly IServiceDependencyProvider _dependencyProvider;
+
     public CompanyServiceWithExpression(IBaseRepositoryInt<SaleCompany> repository, IMapper mapper, IServiceDependencyProvider dependencyProvider) : base(repository, mapper, dependencyProvider)
     {
+        _dependencyProvider=dependencyProvider;
     }
 
     public SaleCompany MapInputToEnity(SaleCompanyInputModel inputModel)
@@ -41,5 +45,26 @@ public class CompanyServiceWithExpression : BaseServiceInt<SaleCompany, SaleComp
             Name = x.CompanyName,
             Id = x.Id
         };
+    }
+
+    public override Expression<Func<SaleCompany, bool>> GetSelectPermissionExpression()
+    {
+        return x=>true;
+    }
+    public override void CheckInsertPermission(SaleCompany entity)
+    {
+        if(!_dependencyProvider.HasToken)
+            throw new ForbiddenExpection("Forbid");
+    }
+    public override void CheckDeletePermission(SaleCompany entity)
+    {
+        if(!_dependencyProvider.HasToken)
+            throw new ForbiddenExpection("Forbid");
+    }
+    public override void CheckUpdatePermission(SaleCompany entity)
+    {
+        if(!_dependencyProvider.HasToken)
+            throw new ForbiddenExpection("Forbid");
+
     }
 }

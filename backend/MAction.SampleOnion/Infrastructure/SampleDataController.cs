@@ -68,10 +68,10 @@ namespace MAction.SampleOnion.Infrastructure
             await _userManager.AddToRoleAsync(user, "user");
             token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             await _userManager.ConfirmEmailAsync(user, token);
-
+            _companyService.SetHasSystemPrivilege(true);
             await _companyService.InsertAsync(new Service.ViewModel.Input.SaleCompanyInputModel() { Id = 1000, Name = "Test" });
             await _companyService.InsertAsync(new Service.ViewModel.Input.SaleCompanyInputModel() { Id = 1001, Name = "Mehdi Haghshenas" });
-
+            _companyService.SetHasSystemPrivilege(false);
             return true;
 
         }
