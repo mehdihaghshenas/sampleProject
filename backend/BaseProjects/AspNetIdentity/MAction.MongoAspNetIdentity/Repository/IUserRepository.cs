@@ -1,13 +1,18 @@
-﻿using MAction.BaseMongoRepository;
-using MongoDB.Bson;
-using MAction.AspNetIdentity.Mongo.Domain;
+﻿using MongoDB.Bson;
+using MAction.BaseMongoRepository;
+using MAction.AspNetIdentity.Base.Entities;
+using Microsoft.AspNetCore.Identity;
+using MAction.BaseClasses;
 
 namespace MAction.AspNetIdentity.Mongo.Repository;
 
-public interface IUserRepository : IMongoRepository<ApplicationUser>
+public interface IUserRepository<TUser, TRole, TKey> : IMongoRepository<TUser, TKey>
+    where TUser : IdentityUser<TKey>, IUser, IBaseEntity, new()
+    where TKey : IEquatable<TKey>
+    where TRole : IdentityRole<TKey>, IRole, new()
 {
-    Task<bool> Exists(ObjectId id, string email, string phoneNumber, CancellationToken cancellationToken);
-    Task<ApplicationUser> GetByEmailOrPhoneNumber(string input, CancellationToken cancellationToken);
-    Task<ApplicationUser> GetByPhoneNumber(string phone, CancellationToken cancellationToken);
-    Task<List<ApplicationRole>> GetUserRoles(ObjectId id, CancellationToken cancellationToken);
+    Task<bool> Exists(TKey id, string email, string phoneNumber, CancellationToken cancellationToken);
+    Task<TUser> GetByEmailOrPhoneNumber(string input, CancellationToken cancellationToken);
+    Task<TUser> GetByPhoneNumber(string phone, CancellationToken cancellationToken);
+    Task<List<TRole>> GetUserRoles(TKey id, CancellationToken cancellationToken);
 }

@@ -6,17 +6,23 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.IdentityModel.Tokens;
 using MAction.BaseMongoRepository;
 using MAction.AspNetIdentity.Base;
-using MAction.AspNetIdentity.Mongo.Domain;
 using Microsoft.Extensions.DependencyInjection;
-using MAction.AspNetIdentity.Mongo.Service;
 using MAction.AspNetIdentity.Base.Repository;
 using MAction.AspNetIdentity.Mongo.Repository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using MAction.AspNetIdentity.Base.Entities;
+using MAction.BaseClasses;
+using MAction.AspNetIdentity.Base.Services;
+using AspNetCore.Identity.Mongo.Model;
 
 namespace MAction.AspNetIdentity.Mongo;
 public class ServiceRegistration
 {
-    public static void AddConfigureService(IServiceCollection services, string connectionString, IMongoDependencyProvider mongoDependencyProvider, JwtSettings jwtSettings, Type userEmailSender)
+    public static void AddConfigureService<TUser, TRole, TKey>(IServiceCollection services, string connectionString, IMongoDependencyProvider mongoDependencyProvider, JwtSettings jwtSettings, Type userEmailSender)
+        where TUser : MongoUser<TKey>, IUser, IBaseEntity, new()
+        where TRole : MongoRole<TKey>, IRole, IBaseEntity, new()
+        where TKey : IEquatable<TKey>
     {
         var connectionBuilder = new MongoUrlBuilder(connectionString)
         {
@@ -27,14 +33,15 @@ public class ServiceRegistration
             throw new Exception("userEmailSender should be assignble from IUserEmailSender");
 
         services.AddScoped(typeof(IUserEmailSender), userEmailSender);
-        services.AddScoped<IJWTService, JwtService>();
-        services.AddScoped<IUserService, UserService>();
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddScoped<IJWTService, JwtService<TUser, TRole, TKey>>();
+        services.AddScoped<IUserService, UserService<TUser, TRole, TKey>>();
+        services.AddScoped<IRoleService, RoleService<TRole, TKey>>();
+        services.AddScoped<IUserRepository<TUser, TRole, TKey>, UserRepository<TUser, TRole, TKey>>();
+        services.AddScoped<IRoleRepository<TRole, TKey>, RoleRepository<TRole, TKey>>();
 
         services.AddSingleton<IVerificationCodeSingletonRepository, VerificationCodeSingletonRepository>();
 
-        services.AddIdentityMongoDbProvider<ApplicationUser, ApplicationRole, ObjectId>(identity =>
+        services.AddIdentityMongoDbProvider<TUser, TRole, TKey>(identity =>
         {
             identity.Password.RequiredLength = jwtSettings.RequiredLength;
             identity.Password.RequireDigit = jwtSettings.PasswordRequireDigit;
