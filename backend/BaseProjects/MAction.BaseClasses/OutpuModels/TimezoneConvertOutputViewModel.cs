@@ -1,4 +1,4 @@
-﻿namespace MAction.BaseServices.ViewModel;
+﻿namespace MAction.BaseClasses.OutpuModels;
 
 public class TimezoneConvertOutputViewModel
 {

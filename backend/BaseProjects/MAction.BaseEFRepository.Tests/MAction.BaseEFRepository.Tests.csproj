@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MAction.BaseEFRepository\MAction.BaseEFRepository.csproj" />
+    <ProjectReference Include="..\TestHelpers\MAction.TestHelpers.csproj" />
   </ItemGroup>
 
 </Project>

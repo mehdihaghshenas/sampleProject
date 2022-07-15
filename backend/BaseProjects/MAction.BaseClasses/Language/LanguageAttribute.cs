@@ -3,8 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 
-namespace MAction.BaseClasses.Helpers;
+namespace MAction.BaseClasses.Language;
 
+//TODO should forward languageEnum from upper layyer to this layyer
 public enum LanguageEnum
 {
     [DefaultLanguage]
@@ -38,7 +39,7 @@ public class Translation
         }
         set
         {
-            foreach(var key in value.Keys)
+            foreach (var key in value.Keys)
             {
                 if (!Enum.TryParse<LanguageEnum>(key, out _))
                     throw new BadRequestException(key + " is not valid language");
@@ -48,12 +49,3 @@ public class Translation
     }
 }
 
-//TO DO Should be create middleware for not change Date in output and input
-//private static void DisableChangeCalender()
-//{
-//    var clone = Thread.CurrentThread.CurrentCulture.Clone() as CultureInfo;
-//    clone.DateTimeFormat = CultureInfo.GetCultureInfo("en").DateTimeFormat;
-
-//    Thread.CurrentThread.CurrentCulture = clone;
-//    Thread.CurrentThread.CurrentUICulture = clone;
-//}

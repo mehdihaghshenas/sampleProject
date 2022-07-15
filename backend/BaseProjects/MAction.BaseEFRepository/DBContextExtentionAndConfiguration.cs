@@ -1,5 +1,5 @@
-﻿using MAction.BaseClasses.Extentions;
-using MAction.BaseClasses.Helpers;
+﻿using MAction.BaseClasses.Extensions;
+using MAction.BaseClasses.Language;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -16,14 +16,18 @@ using System.Threading.Tasks;
 
 namespace MAction.BaseEFRepository
 {
-    public static class DBContextExtentionAndConfiguration
+    public static class DBContextExtensionAndConfiguration
     {
-        public static void OnModelCreating(ModelBuilder modelBuilder, Type _domainType, List<Type> _domainTypes = null)
+        public static void OnModelCreating(ModelBuilder modelBuilder, Type _domainType, Type[] _domainTypes = null)
         {
-            var lstofmapClass = new List<Type>();
-            if (_domainTypes == null)
-                _domainTypes = new();
-            _domainTypes.Add(_domainType);
+            var lstofmapClass = Assembly.GetAssembly(_domainType).GetTypes().
+                   Where(x => x.IsAssignableToGenericType(typeof(IBaseEntityTypeConfiguration<>)) &&
+                   !x.GetCustomAttributes(typeof(NotMappedAttribute), true).Any()
+                   ).ToList();
+
+
+            modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetAssembly(_domainType));
+            modelBuilder.CallMapBaseForBaseEntityWithCreationInfoOnModelCreating(_domainType);
             if (_domainTypes != null)
                 foreach (var t in _domainTypes)
                 {
@@ -96,8 +100,7 @@ namespace MAction.BaseEFRepository
 
                     if (val.HasValue())
                     {
-                        var newVal = val;
-                        //TODO var newVal = val.Fa2En().FixPersianChars();
+                        var newVal = val;//TODO //val.Fa2En().FixPersianChars();
                         if (newVal == val)
                             continue;
                         property.SetValue(item.Entity, newVal, null);

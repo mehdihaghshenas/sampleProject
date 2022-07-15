@@ -1,4 +1,4 @@
-﻿namespace MAction.BaseServices;
+﻿namespace MAction.BaseClasses;
 
 public interface IBaseServiceDependencyProvider
 {
@@ -13,6 +13,7 @@ public interface IBaseServiceDependencyProvider
     object SystemUserId { get; }
     ITimeZoneConverterService TimeZoneConverterService { get; set; }
     void SetInternalMode(bool isInternalMode);
+    bool HasSystemPrivilege();
 
 }
 

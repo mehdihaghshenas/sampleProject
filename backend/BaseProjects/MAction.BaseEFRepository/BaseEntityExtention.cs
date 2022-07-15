@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace MAction.BaseEFRepository
 {
-    public static class BaseEntityEFExtention 
+    public static class BaseEntityEFExtension 
     {
         public static void MapBase(this BaseEntityWithCreationInfo entity, EntityTypeBuilder builder)
         {

@@ -2,13 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MAction.TestHelpers;
 using Faker;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
-using MAction.BaseClasses.Exceptions;
-using MAction.BaseEFRepository;
 
 namespace MAction.BaseEFRepository.Tests;
 
@@ -16,7 +15,7 @@ public partial class EFRepositoryUnitTest : IDisposable
 {
     private readonly TestContext testContext;
 
-    private readonly EFRepository<DoctorTest> baseRepository;
+    private readonly EFRepository<DoctorTest, int> baseRepository;
     public EFRepositoryUnitTest()
     {
         var options = new DbContextOptionsBuilder<TestContext>()
@@ -29,7 +28,7 @@ public partial class EFRepositoryUnitTest : IDisposable
         testContext.Doctors.AddRange(Doctors);
         testContext.SaveChanges();
 
-        baseRepository = new EFRepository<DoctorTest>(testContext);
+        baseRepository = new EFRepository<DoctorTest, int>(testContext, new FakeBaseServiceDependencyProvider());
     }
 
     public void Dispose()
@@ -326,6 +325,8 @@ public partial class EFRepositoryUnitTest : IDisposable
     public void TestUpdateWithSaveChange_WhenEverythingIsOkAndActivityTypeIsNull_MustUpdateSuccessfully()
     {
         var doctor = baseRepository.Get(1);
+        if (doctor == null)
+            throw new ArgumentNullException();
         doctor.LastName = Name.FullName();
         doctor.BirthDate = Identification.DateOfBirth();
         doctor.Language = Lorem.GetFirstWord();
@@ -334,6 +335,8 @@ public partial class EFRepositoryUnitTest : IDisposable
         baseRepository.UpdateWithSaveChange(doctor);
 
         var updatedDoctor = baseRepository.Get(1);
+        if (updatedDoctor == null)
+            throw new ArgumentNullException();
         updatedDoctor.LastName.Should().Be(doctor.LastName);
         updatedDoctor.BirthDate.Should().Be(doctor.BirthDate);
         updatedDoctor.Language.Should().Be(doctor.Language);
@@ -355,6 +358,8 @@ public partial class EFRepositoryUnitTest : IDisposable
     public async Task TestUpdateWithSaveChangeAsync_WhenEverythingIsOkAndActivityTypeIsNull_MustUpdateSuccessfully()
     {
         var doctor = await baseRepository.GetAsync(1);
+        if (doctor == null)
+            throw new ArgumentNullException();
         doctor.LastName = Name.FullName();
         doctor.BirthDate = Identification.DateOfBirth();
         doctor.Language = Lorem.GetFirstWord();
@@ -363,6 +368,8 @@ public partial class EFRepositoryUnitTest : IDisposable
         await baseRepository.UpdateWithSaveChangeAsync(doctor);
 
         var updatedDoctor = await baseRepository.GetAsync(1);
+        if (updatedDoctor == null)
+            throw new ArgumentNullException();
         updatedDoctor.LastName.Should().Be(doctor.LastName);
         updatedDoctor.BirthDate.Should().Be(doctor.BirthDate);
         updatedDoctor.Language.Should().Be(doctor.Language);

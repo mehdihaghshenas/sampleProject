@@ -5,14 +5,14 @@ namespace MAction.BaseClasses.InputModels;
 
 public class PageParams
 {
-    bool _passPrivilage = false;
+    bool _passPrivilege = false;
     public bool GetPrivliage()
     {
-        return _passPrivilage;
+        return _passPrivilege;
     }
-    public void SetPrivilage()
+    public void SetPrivilege()
     {
-        _passPrivilage = true;
+        _passPrivilege = true;
     }
     public PageParams()
     {

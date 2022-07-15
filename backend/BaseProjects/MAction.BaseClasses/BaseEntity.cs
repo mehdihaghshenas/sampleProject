@@ -49,14 +49,23 @@ namespace MAction.BaseClasses
 
     }
 
-    public abstract class BaseEntityWithCreationInfo : BaseEntity
+    public abstract class BaseEntityWithCreationInfo : BaseEntity, IEntityCreationInfo
     {
+        //[Key]
+        //public int Id { get; set; }
         public DateTimeOffset CreateAt { get; set; }
         public string TimeZone { get; set; }
-        public int? UserCreationId { get; set; }
+        public string UserCreationId { get; set; }
+        //[DefaultValue(false)]
+        //[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        //public bool IsDeleted { get; set; }
 
     }
 
-
-
+    public interface IEntityCreationInfo
+    {
+        public DateTimeOffset CreateAt { get; set; }
+        public string TimeZone { get; set; }
+        public string UserCreationId { get; set; }
+    }
 }

@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MAction.BaseServices\MAction.BaseServices.csproj" />
+    <ProjectReference Include="..\TestHelpers\MAction.TestHelpers.csproj" />
   </ItemGroup>
 
 </Project>

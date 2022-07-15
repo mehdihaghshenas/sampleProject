@@ -1,4 +1,4 @@
-﻿using MAction.BaseClasses.Helpers;
+﻿using MAction.BaseClasses.Language;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
@@ -43,5 +43,29 @@ namespace MAction.BaseMongoRepository
 
         }
     }
+
+    //public class LanguageSerializer : MongoDB.Bson.Serialization.Serializers.ObjectSerializer
+    //{
+    //    public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, object value)
+    //    {
+    //        var bsonWriter = context.Writer;
+    //        if (value != null && value.GetType().IsEnum && value.GetType()==typeof(LanguageEnum))
+    //        {
+    //            value = value.ToString() ?? "";
+    //            bsonWriter.WriteString(value.ToString());
+    //            return;
+    //        }
+
+    //        base.Serialize(context, args, value);
+    //    }
+    //}
+    //public static class MongoLanguageSerializerRegisteration
+    //{
+    //    public static void Register()
+    //    {
+    //        BsonSerializer.RegisterSerializer(typeof(LanguageEnum), new LanguageSerializer());
+
+    //    }
+    //}
 
 }

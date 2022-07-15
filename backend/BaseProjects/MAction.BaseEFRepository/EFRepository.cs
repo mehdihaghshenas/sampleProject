@@ -11,23 +11,32 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace MAction.BaseEFRepository;
-public interface IEFRepository<TEntity> : IBaseRepository<TEntity> where TEntity : class, IBaseEntity
+public interface IEFRepository<TEntity,TKey> : IBaseRepository<TEntity,TKey> where TEntity : class, IBaseEntity
 {
 }
 
-public class EFRepository<T> : IEFRepository<T> where T : class, IBaseEntity
+public class EFRepository<T,TKey> : IEFRepository<T,TKey> where T : class, IBaseEntity
 {
     private readonly DbContext _context;
     internal DbSet<T> entities;
-
-    public EFRepository(DbContext context)
+    private readonly IBaseServiceDependencyProvider _baseServiceDependencyProvider;
+    public EFRepository(DbContext context, IBaseServiceDependencyProvider baseServiceDependencyProvider)
     {
         _context = context;
         entities = context.Set<T>();
+        _baseServiceDependencyProvider = baseServiceDependencyProvider;
+    }
+    public void SetHasSystemPrivilege(bool value)
+    {
+        _baseServiceDependencyProvider.SetInternalMode(value);
     }
 
-    public T Get(object id)
+
+#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+    public T? Get(TKey id)
+#pragma warning restore CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
     {
+
         var expression = ExpressionHelpers.GetIdFilter<T>(id);
         return entities.Where(expression).FirstOrDefault();
     }
@@ -37,10 +46,12 @@ public class EFRepository<T> : IEFRepository<T> where T : class, IBaseEntity
         return entities.AsQueryable<T>();
     }
 
-    public Task<T> GetAsync(object id, CancellationToken cancellationToken = default)
+#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+    public Task<T?> GetAsync(object id, CancellationToken cancellationToken = default)
+#pragma warning restore CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
     {
         var expression = ExpressionHelpers.GetIdFilter<T>(id);
-        return entities.Where(expression).FirstOrDefaultAsync();
+        return entities.Where(expression).FirstOrDefaultAsync(cancellationToken);
     }
 
     private void AddRequiredFieldForInsert(T entity)
@@ -48,13 +59,13 @@ public class EFRepository<T> : IEFRepository<T> where T : class, IBaseEntity
         //TODO Check system Privillage and user info and Timezone 
         if (entity == null)
         {
-            throw new ArgumentNullException("entity");
+            throw new ArgumentNullException(nameof(entity));
         }
         if (entity.GetType().IsSubclassOf(typeof(BaseEntityWithCreationInfo)))
         {
-            (entity as BaseEntityWithCreationInfo).CreateAt = DateTimeOffset.UtcNow;
-            (entity as BaseEntityWithCreationInfo).TimeZone = "Iran Standard Time"; // TODO Get from basedependency provider
-            (entity as BaseEntityWithCreationInfo).UserCreationId = null; //TODO Get From base dependency
+            (entity as BaseEntityWithCreationInfo).CreateAt = _baseServiceDependencyProvider.HasSystemPrivilege() ? DateTimeOffset.UtcNow : TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, _baseServiceDependencyProvider.TimeZoneConverterService.GetClientTimeZoneInfo());
+            (entity as BaseEntityWithCreationInfo).TimeZone = _baseServiceDependencyProvider.TimeZoneConverterService.GetClientTimeZoneInfo().StandardName; // TODO Get from basedependency provider
+            (entity as BaseEntityWithCreationInfo).UserCreationId = _baseServiceDependencyProvider.UserId.ToString() ; //TODO Get From base dependency
         }
         //For Check Permission in add with out savechange we have create a pipeline to test on save change
     }
@@ -69,7 +80,7 @@ public class EFRepository<T> : IEFRepository<T> where T : class, IBaseEntity
     public Task InsertAsync(T entity, CancellationToken cancellationToken = default)
     {
         AddRequiredFieldForInsert(entity);
-        return entities.AddAsync(entity).AsTask();
+        return entities.AddAsync(entity, cancellationToken).AsTask();
     }
 
     public T InsertWithSaveChange(T entity)
@@ -107,8 +118,8 @@ public class EFRepository<T> : IEFRepository<T> where T : class, IBaseEntity
         var transaction = _context.Database.CurrentTransaction ?? _context.Database.BeginTransaction(System.Data.IsolationLevel.ReadUncommitted);
         try
         {
-            await InsertAsync(entity);
-            await SaveChangesAsync();
+            await InsertAsync(entity, cancellationToken);
+            await SaveChangesAsync(cancellationToken);
 
             //TODO Check permission
             if (!hasoldtran)
@@ -133,7 +144,7 @@ public class EFRepository<T> : IEFRepository<T> where T : class, IBaseEntity
     {
         if (entity == null)
         {
-            throw new ArgumentNullException("entity");
+            throw new ArgumentNullException(nameof(entity));
         }
         //TODO Check permission
 
@@ -147,7 +158,7 @@ public class EFRepository<T> : IEFRepository<T> where T : class, IBaseEntity
         return Task.CompletedTask;
     }
 
-    public void RemoveWithSaveChange(object id)
+    public void RemoveWithSaveChange(TKey id)
     {
         var e = Get(id);
         Remove(e);
@@ -156,9 +167,9 @@ public class EFRepository<T> : IEFRepository<T> where T : class, IBaseEntity
 
     public async Task<int> RemoveWithSaveChangeAsync(object id, CancellationToken cancellationToken = default)
     {
-        var e = await GetAsync(id);
-        await RemoveAsync(e);
-        return await SaveChangesAsync();
+        var e = await GetAsync(id, cancellationToken);
+        await RemoveAsync(e, cancellationToken);
+        return await SaveChangesAsync(cancellationToken);
     }
 
     public void SaveChanges()
@@ -168,7 +179,7 @@ public class EFRepository<T> : IEFRepository<T> where T : class, IBaseEntity
 
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        return _context.SaveChangesAsync();
+        return _context.SaveChangesAsync(cancellationToken);
     }
 
     private void AttachIfNotAttached(T entity)
@@ -232,7 +243,7 @@ public class EFRepository<T> : IEFRepository<T> where T : class, IBaseEntity
     {
         if (entity == null)
         {
-            throw new ArgumentNullException("entity");
+            throw new ArgumentNullException(nameof(entity));
         }
 
         AttachIfNotAttached(entity);
@@ -252,10 +263,10 @@ public class EFRepository<T> : IEFRepository<T> where T : class, IBaseEntity
 
     public async Task<int> UpdateWithSaveChangeAsync(T entity, CancellationToken cancellationToken = default)
     {
-        await UpdateAsync(entity);
+        await UpdateAsync(entity, cancellationToken);
         try
         {
-            return await SaveChangesAsync();
+            return await SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -263,3 +274,5 @@ public class EFRepository<T> : IEFRepository<T> where T : class, IBaseEntity
         }
     }
 }
+
+//TODO in insert update delete check HasSystem Privilege if true save with systemUser and Can set with 

@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 
-namespace MAction.BaseServices.Tests;
+namespace MAction.BaseProject.Tests;
 
 public class CustomMappingRegister : Profile
 {

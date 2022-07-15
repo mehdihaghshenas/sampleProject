@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using MAction.BaseClasses;
+using MAction.BaseClasses.Language;
 using MAction.BaseClasses.Helpers;
 
 namespace MAction.SampleOnion.Domain.Entity.SAL;

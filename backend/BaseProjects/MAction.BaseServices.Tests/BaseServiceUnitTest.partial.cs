@@ -1,4 +1,4 @@
-namespace MAction.BaseServices.Tests;
+namespace MAction.BaseProject.Tests;
 
 public partial class BaseServiceUnitTest
 {
@@ -87,7 +87,7 @@ public partial class BaseServiceUnitTest
         _list = new List<DoctorTest>();
         ResetList();
     }
-    private static List<DoctorTest> Doctors { get => _list; }
+    public static List<DoctorTest> Doctors { get => _list; }
 
 
 }

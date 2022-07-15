@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MAction.BaseClasses.Extentions
+namespace MAction.BaseClasses.Extensions
 {
     public static class StringExtensions
     {
@@ -33,6 +33,12 @@ namespace MAction.BaseClasses.Extentions
         public static string NullIfEmpty(this string str)
         {
             return str?.Length == 0 ? null : str;
+        }
+
+        public static bool IsValidUri(this string uri)
+        {
+            // just so the validation passes if the uri is not required / nullable
+            return string.IsNullOrEmpty(uri) || Uri.TryCreate(uri, UriKind.Absolute, out _);
         }
     }
 }

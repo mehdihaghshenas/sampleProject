@@ -1,6 +1,7 @@
 ﻿using MAction.BaseClasses;
 using MAction.BaseClasses.Exceptions;
 using MAction.BaseClasses.Helpers;
+using MAction.BaseClasses.Language;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
@@ -15,12 +16,13 @@ using System.Threading.Tasks;
 
 namespace MAction.BaseMongoRepository;
 
-public interface IMongoRepository<TEntity> : IBaseRepository<TEntity> where TEntity : IBaseEntity
+public interface IMongoRepository<TEntity, TKey> : IBaseRepository<TEntity, TKey> where TEntity : IBaseEntity
 {
 }
 
-public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
+public class MongoRepository<T, TKey> : IMongoRepository<T, TKey> where T : IBaseEntity
 {
+    private readonly IBaseServiceDependencyProvider _baseServiceDependencyProvider;
     private readonly IMongoClient _mongoClient;
     private IMongoDatabase _db;
     private readonly IMongoCollection<T> _collection;
@@ -31,43 +33,51 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
         get => typeof(T).Name;
     }
 
-    public MongoRepository(IMongoDependencyProvider databaseName, IMongoClient mongoClient)
+    public MongoRepository(IMongoDependencyProvider databaseName, IMongoClient mongoClient, IBaseServiceDependencyProvider baseServiceDependencyProvider)
     {
         _mongoClient = mongoClient;
         _db = _mongoClient.GetDatabase(databaseName.DatabaseName);
         _collection = _db.GetCollection<T>(CollectionName);
+        _baseServiceDependencyProvider = baseServiceDependencyProvider;
+    }
+    public void SetHasSystemPrivilege(bool value)
+    {
+        _baseServiceDependencyProvider.SetInternalMode(value);
     }
 
-    public T Get(object id)
+
+    public T Get(TKey id)
     {
         return _collection.Find(ExpressionHelpers.GetIdFilter<T>(id)).FirstOrDefault();
     }
 
     public IQueryable<T> GetAll()
     {
-        var languagePropertyInfo =
-            typeof(T).GetProperties().FirstOrDefault(x => x.PropertyType == typeof(LanguageEnum));
-        if (languagePropertyInfo != null)
-        {
-            var condition = ExpressionHelpers.GetConstantExpressionFromType<T>(languagePropertyInfo,
-                Enum.Parse<LanguageEnum>(
-                    CultureInfo.CurrentCulture.Name, ignoreCase: true));
-            return _collection.AsQueryable().Where(condition);
-        }
+        Expression<Func<T, bool>>? langCondition = LanguageHelpers.GetLanguageExpressionCondition<T>();
+        if (langCondition != null)
+            return _collection.AsQueryable().Where(langCondition);
         else
             return _collection.AsQueryable();
     }
 
+#pragma warning disable CS8613 // Nullability of reference types in return type doesn't match implicitly implemented member.
     public Task<T> GetAsync(object id, CancellationToken cancellationToken = default)
     {
+#pragma warning restore CS8613 // Nullability of reference types in return type doesn't match implicitly implemented member.
         return _collection.Find(ExpressionHelpers.GetIdFilter<T>(id)).FirstOrDefaultAsync(cancellationToken);
     }
+
+    private void SetRequiredDateForInsert(T entity)
+    {
+        entity.SetRequiredDateForInsert(_baseServiceDependencyProvider);
+    }
+
 
     public void Insert(T entity)
     {
         CheckExistAndAddId(entity);
 
-        SetLanguagePropertyInfo(entity);
+        SetRequiredDateForInsert(entity);
 
         if (_session == null)
             _session = _mongoClient.StartSession();
@@ -81,8 +91,7 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
     {
         CheckExistAndAddId(entity);
 
-        SetLanguagePropertyInfo(entity);
-
+        SetRequiredDateForInsert(entity);
         if (_session == null)
             _session = await _mongoClient.StartSessionAsync(cancellationToken: cancellationToken);
         // Begin transaction
@@ -92,7 +101,8 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
         await _collection.InsertOneAsync(_session, entity, cancellationToken: cancellationToken);
         return;
     }
-    private static bool CheckExistAndAddId(T entity, bool add = true)
+
+    private static bool CheckExistAndAddId(T entity)
     {
         if (entity.GetPrimaryKeyType() == typeof(int))
         {
@@ -106,19 +116,7 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
             var id = (string)entity.GetPrimaryKeyValue();
             if (string.IsNullOrWhiteSpace(id))
             {
-                if (add)
-                    entity.SetPrimaryKeyValue(Guid.NewGuid().ToString());
-                return false;
-            }
-            else
-                return true;
-        }
-        else if (entity.GetPrimaryKeyType() == typeof(Guid))
-        {
-            if (((Guid)entity.GetPrimaryKeyValue()) == Guid.Empty)
-            {
-                if (add)
-                    entity.SetPrimaryKeyValue(Guid.NewGuid());
+                entity.SetPrimaryKeyValue(ObjectId.GenerateNewId().ToString());
                 return false;
             }
             else
@@ -128,8 +126,17 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
         {
             if (((ObjectId)entity.GetPrimaryKeyValue()) == ObjectId.Empty)
             {
-                if (add)
-                    entity.SetPrimaryKeyValue(ObjectId.GenerateNewId());
+                entity.SetPrimaryKeyValue(ObjectId.GenerateNewId());
+                return false;
+            }
+            else
+                return true;
+        }
+        else if (entity.GetPrimaryKeyType() == typeof(ObjectId))
+        {
+            if (((ObjectId)entity.GetPrimaryKeyValue()) == ObjectId.Empty)
+            {
+                entity.SetPrimaryKeyValue(ObjectId.GenerateNewId());
                 return false;
             }
             else
@@ -139,9 +146,10 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
             throw new NotImplementedException("Not Allowed");
     }
 
+
     public T InsertWithSaveChange(T entity)
     {
-        SetLanguagePropertyInfo(entity);
+        SetRequiredDateForInsert(entity);
 
         _collection.InsertOne(entity);
         return entity;
@@ -149,7 +157,7 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
 
     public async Task<T> InsertWithSaveChangeAsync(T entity, CancellationToken cancellationToken = default)
     {
-        SetLanguagePropertyInfo(entity);
+        SetRequiredDateForInsert(entity);
 
         await _collection.InsertOneAsync(entity, cancellationToken: cancellationToken);
         return entity;
@@ -187,7 +195,7 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
             throw new NotFoundException("Enity dos not have id");
     }
 
-    public void RemoveWithSaveChange(object id)
+    public void RemoveWithSaveChange(TKey id)
     {
         Expression<Func<T, bool>> lambda = ExpressionHelpers.GetIdFilter<T>(id);
         var res = _collection.DeleteOne(lambda);
@@ -198,9 +206,9 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
     public async Task<int> RemoveWithSaveChangeAsync(object id, CancellationToken cancellationToken = default)
     {
         Expression<Func<T, bool>> lambda = ExpressionHelpers.GetIdFilter<T>(id);
-        var res = await _collection.DeleteOneAsync(lambda);
+        var res = await _collection.DeleteOneAsync(lambda, cancellationToken);
         if (res.DeletedCount != 1)
-            throw new NotFoundException("Enity dos not have id");
+            throw new NotFoundException("Entity dos not have id");
         else
             return 1;
     }
@@ -221,17 +229,13 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
         else
             return Task.FromResult(0);
     }
-    private void ExceludePropertyFromUpdate(T entity)
-    {
-        //TODO Excelude Not Be updated properties
-    }
+
     public void Update(T entity)
     {
         if (!CheckExistAndAddId(entity))
             throw new InvalidEntityException("Enity dos not have id");
 
-        SetLanguagePropertyInfo(entity);
-        ExceludePropertyFromUpdate(entity);
+        LanguageHelpers.SetLanguagePropertyInfo(entity);
 
         object keyValue = entity.GetPrimaryKeyValue();
         Expression<Func<T, bool>> lambda = ExpressionHelpers.GetIdFilter<T>(keyValue);
@@ -250,8 +254,7 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
         if (!CheckExistAndAddId(entity))
             throw new InvalidEntityException("Enity dos not have id");
 
-        ExceludePropertyFromUpdate(entity);
-        SetLanguagePropertyInfo(entity);
+        LanguageHelpers.SetLanguagePropertyInfo(entity);
 
         object keyValue = entity.GetPrimaryKeyValue();
         Expression<Func<T, bool>> lambda = ExpressionHelpers.GetIdFilter<T>(keyValue);
@@ -267,10 +270,10 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
 
     public void UpdateWithSaveChange(T entity)
     {
-        if (!CheckExistAndAddId(entity, false))
+        if (!CheckExistAndAddId(entity))
             throw new InvalidEntityException("Enity dos not have id");
-        ExceludePropertyFromUpdate(entity);
-        SetLanguagePropertyInfo(entity);
+
+        LanguageHelpers.SetLanguagePropertyInfo(entity);
 
         object keyValue = entity.GetPrimaryKeyValue();
         Expression<Func<T, bool>> lambda = ExpressionHelpers.GetIdFilter<T>(keyValue);
@@ -284,8 +287,7 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
         if (!CheckExistAndAddId(entity))
             throw new InvalidEntityException("Enity dos not have id");
 
-        ExceludePropertyFromUpdate(entity);
-        SetLanguagePropertyInfo(entity);
+        LanguageHelpers.SetLanguagePropertyInfo(entity);
 
         object keyValue = entity.GetPrimaryKeyValue();
         Expression<Func<T, bool>> lambda = ExpressionHelpers.GetIdFilter<T>(keyValue);
@@ -294,18 +296,5 @@ public class MongoRepository<T> : IMongoRepository<T> where T : IBaseEntity
             throw new NotFoundException("Enity dos not have id");
         else
             return 1;
-    }
-
-    private static void SetLanguagePropertyInfo(T entity)
-    {
-        var languagePropertyInfo =
-            typeof(T).GetProperties().FirstOrDefault(x => x.PropertyType == typeof(LanguageEnum));
-
-        if (languagePropertyInfo == null) return;
-
-        var value = (LanguageEnum)(languagePropertyInfo.GetValue(entity) ?? throw new InvalidOperationException());
-        if ((int)value == 0)
-            languagePropertyInfo.SetValue(entity, Enum.Parse<LanguageEnum>(
-                CultureInfo.CurrentCulture.Name, ignoreCase: true));
     }
 }

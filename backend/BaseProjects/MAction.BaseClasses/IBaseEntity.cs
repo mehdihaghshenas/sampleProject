@@ -11,6 +11,8 @@ namespace MAction.BaseClasses
         object GetPrimaryKeyValue();
         Type GetPrimaryKeyType();
         void SetPrimaryKeyValue(object value);
+
+
     }
 
 

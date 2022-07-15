@@ -9,11 +9,15 @@ using System.Threading.Tasks;
 
 namespace MAction.BaseClasses
 {
-    public interface IBaseRepository<T> where T : IBaseEntity
+    public interface IBaseRepository<T,TKey> where T : IBaseEntity
     {
+        void SetHasSystemPrivilege(bool value);
+
         IQueryable<T> GetAll();
-        T Get(object id);
-        Task<T> GetAsync(object id, CancellationToken cancellationToken = default);
+#nullable enable
+        T? Get(TKey id);
+        Task<T?> GetAsync(object id, CancellationToken cancellationToken = default);
+#nullable disable
         void Insert(T entity);
         Task InsertAsync(T entity, CancellationToken cancellationToken = default);
         void Update(T entity);
@@ -27,7 +31,7 @@ namespace MAction.BaseClasses
         Task<T> InsertWithSaveChangeAsync(T entity, CancellationToken cancellationToken = default);
         void UpdateWithSaveChange(T entity);
         Task<int> UpdateWithSaveChangeAsync(T entity, CancellationToken cancellationToken = default);
-        void RemoveWithSaveChange(object id);
+        void RemoveWithSaveChange(TKey id);
         Task<int> RemoveWithSaveChangeAsync(object id, CancellationToken cancellationToken = default);
         //TO DO Add Bulk Insert
         //TO DO Add Check Privillage

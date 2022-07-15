@@ -1,21 +1,24 @@
 ﻿using System.Linq.Expressions;
 using AutoMapper;
 using MAction.BaseClasses;
+using MAction.BaseClasses.Exceptions;
 using MAction.BaseServices;
 
-namespace MAction.BaseServices.Tests;
+namespace MAction.BaseProject.Tests;
 
-public class TestServiceWithExpression : BaseService<DoctorTest, DoctorTestInputModel, DoctorTestOutputModel>,
+public class TestServiceWithExpression : BaseServiceWithKey<int, DoctorTest, DoctorTestInputModel, DoctorTestOutputModel>,
     ISelectWithModelExpression<DoctorTest, DoctorTestOutputModel>
 {
-    private readonly IBaseRepository<DoctorTest> _baseRepository;
+    private readonly IBaseRepository<DoctorTest, int> _baseRepository;
     private readonly IMapper _mapper;
+    private readonly IBaseServiceDependencyProvider _dependencyProvider;
 
-    public TestServiceWithExpression(IBaseRepository<DoctorTest> baseRepository, IMapper mapper) : base(baseRepository,
-        mapper)
+    public TestServiceWithExpression(IBaseRepository<DoctorTest, int> baseRepository, IMapper mapper, IBaseServiceDependencyProvider dependencyProvider) : base(baseRepository,
+        mapper, dependencyProvider)
     {
         _baseRepository = baseRepository;
         _mapper = mapper;
+        _dependencyProvider = dependencyProvider;
     }
 
     public Expression<Func<DoctorTest, DoctorTestOutputModel>> SelectExpression()
@@ -27,11 +30,11 @@ public class TestServiceWithExpression : BaseService<DoctorTest, DoctorTestInput
     }
 }
 
-public class TestServiceWithCustomMapping : BaseService<DoctorTest, DoctorTestInputModel, DoctorTestOutputModel>,
+public class TestServiceWithCustomMapping : BaseServiceWithKey<int, DoctorTest, DoctorTestInputModel, DoctorTestOutputModel>,
     ISelectWithModelMapper<DoctorTest, DoctorTestOutputModel>
 {
-    public TestServiceWithCustomMapping(IBaseRepository<DoctorTest> repository, IMapper mapper) : base(repository,
-        mapper)
+    public TestServiceWithCustomMapping(IBaseRepository<DoctorTest, int> repository, IMapper mapper, IBaseServiceDependencyProvider dependencyProvider) : base(repository,
+        mapper, dependencyProvider)
     {
     }
 
@@ -44,10 +47,47 @@ public class TestServiceWithCustomMapping : BaseService<DoctorTest, DoctorTestIn
     }
 }
 
-public class TestServiceWithPureMapper : BaseService<DoctorTest, DoctorTestInputModel, DoctorTestOutputModelPure>
+public class TestServiceWithPureMapper : BaseServiceWithKey<int, DoctorTest, DoctorTestInputModel, DoctorTestOutputModelPure>
 {
-    public TestServiceWithPureMapper(IBaseRepository<DoctorTest> repository, IMapper mapper) : base(repository, mapper)
+    public TestServiceWithPureMapper(IBaseRepository<DoctorTest, int> repository, IMapper mapper,
+        IBaseServiceDependencyProvider dependencyProvider) : base(repository, mapper, dependencyProvider)
     {
+    }
+}
+
+public class TestServiceWithPolicy : BaseServiceWithKey<int, DoctorTest, DoctorTestInputModel, DoctorTestOutputModelPure>
+{
+    private readonly IBaseServiceDependencyProvider _dependencyProvider;
+    public TestServiceWithPolicy(IBaseRepository<DoctorTest, int> repository, IMapper mapper,
+        IBaseServiceDependencyProvider baseServiceDependencyProvider) : base(repository, mapper,
+        baseServiceDependencyProvider)
+    {
+        _dependencyProvider = baseServiceDependencyProvider;
+    }
+
+    public override Expression<Func<DoctorTest, bool>> GetSelectPermissionExpression()
+    {
+        if (_dependencyProvider.IsCurrentUserAuthorize("TestGetPolicy"))
+            return x => true;
+        return x => false;
+    }
+
+    public override void CheckInsertPermission(DoctorTest entity)
+    {
+        if (!_dependencyProvider.IsCurrentUserAuthorize("TestInsertPolicy"))
+            throw new ForbiddenExpection($"You need TestInsertPolicy");
+    }
+
+    public override void CheckUpdatePermission(DoctorTest entity)
+    {
+        if (!_dependencyProvider.IsCurrentUserAuthorize("TestUpdatePolicy"))
+            throw new ForbiddenExpection($"You need TestUpdatePolicy");
+    }
+
+    public override void CheckDeletePermission(DoctorTest entity)
+    {
+        if (!_dependencyProvider.IsCurrentUserAuthorize("TestDeletePolicy"))
+            throw new ForbiddenExpection($"You need TestDeletePolicy");
     }
 }
 

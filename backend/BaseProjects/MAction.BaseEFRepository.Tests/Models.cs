@@ -1,12 +1,13 @@
-﻿using System;
+﻿using MAction.BaseClasses;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using MAction.BaseClasses;
-
+using Microsoft.EntityFrameworkCore;
 namespace MAction.BaseEFRepository.Tests;
 
-public class DoctorTest : BaseEntityWithCreationInfo
+public class DoctorTest : BaseEntityWithCreationInfo, IBaseEntityTypeConfiguration<DoctorTest>
 {
     [Key]
     public int DoctorId { get; set; }
@@ -21,6 +22,12 @@ public class DoctorTest : BaseEntityWithCreationInfo
     public DoctorTest()
     {
         Offices = new HashSet<Office>();
+    }
+
+    public void Configure(EntityTypeBuilder<DoctorTest> builder)
+    {
+        // builder.Property(x=>x.UserCreationId).HasConversion<int>();
+        // builder.Property(x=>x.UserCreationId).HasColumnType("int");
     }
 }
 

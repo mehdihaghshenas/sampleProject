@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MAction.BaseClasses.Extentions;
+namespace MAction.BaseClasses.Extensions;
 
-public static class TypeExtentionMethod
+public static class TypeExtensionMethod
 {
     public static bool IsAssignableToGenericType(this Type givenType, Type genericType)
     {

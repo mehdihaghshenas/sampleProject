@@ -5,25 +5,28 @@ using MAction.BaseClasses.InputModels;
 using MAction.BaseClasses.OutpuModels;
 using MAction.BaseServices;
 using MAction.BaseServices.Configure;
+using MAction.TestHelpers;
 using FluentAssertions;
 using Moq;
 
-namespace MAction.BaseServices.Tests;
+namespace MAction.BaseProject.Tests;
 
 public partial class BaseServiceUnitTest : IDisposable
 {
-    private readonly BaseService<DoctorTest, DoctorTest, DoctorTest> _baseService;
+    private readonly BaseServiceWithKey<int, DoctorTest, DoctorTest, DoctorTest> _baseService;
     private readonly TestServiceWithExpression _baseServiceWithExpression;
     private readonly TestServiceWithCustomMapping _baseServiceWithCustomMapping;
     private readonly TestServiceWithPureMapper _baseServiceWithPureMapper;
 
     public BaseServiceUnitTest()
     {
-        var repository = new Mock<IBaseRepository<DoctorTest>>();
+        var repository = new Mock<IBaseRepository<DoctorTest, int>>();
+        var dependencyProvider = new FakeBaseServiceDependencyProvider();
+        dependencyProvider.SetInternalMode(true);
 #pragma warning disable CS8603 // Possible null reference return.
         repository.Setup(x => x.GetAll()).Returns(() => Doctors.AsQueryable());
-        repository.Setup(x => x.Get(It.IsAny<object>()))
-            .Returns<object>(x => Doctors.FirstOrDefault(d => d.DoctorId == (int)x));
+        repository.Setup(x => x.Get(It.IsAny<int>()))
+            .Returns<int>(x => Doctors.FirstOrDefault(d => d.DoctorId == (int)x));
 
         repository.Setup(x => x.InsertWithSaveChange(It.IsAny<DoctorTest>()))
             .Returns<DoctorTest>(x =>
@@ -41,8 +44,8 @@ public partial class BaseServiceUnitTest : IDisposable
                 return Task.FromResult(x);
             });
 
-        repository.Setup(x => x.RemoveWithSaveChangeAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()))
-            .Returns<object, CancellationToken>((x, _) =>
+        repository.Setup(x => x.RemoveWithSaveChangeAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns<int, CancellationToken>((x, _) =>
             {
                 var entity = Doctors.First(y => y.DoctorId == (int)x);
                 Doctors.Remove(entity);
@@ -72,10 +75,11 @@ public partial class BaseServiceUnitTest : IDisposable
             cfg.AddProfile(new CustomMappingProfile(this.GetType().Assembly));
         });
         var mapper = mockMapper.CreateMapper();
-        _baseService = new BaseService<DoctorTest, DoctorTest, DoctorTest>(repository.Object, mapper);
-        _baseServiceWithExpression = new TestServiceWithExpression(repository.Object, Mock.Of<IMapper>());
-        _baseServiceWithCustomMapping = new TestServiceWithCustomMapping(repository.Object, Mock.Of<IMapper>());
-        _baseServiceWithPureMapper = new TestServiceWithPureMapper(repository.Object, mapper);
+        _baseService =
+            new BaseServiceWithKey<int, DoctorTest, DoctorTest, DoctorTest>(repository.Object, mapper, dependencyProvider);
+        _baseServiceWithExpression = new TestServiceWithExpression(repository.Object, Mock.Of<IMapper>(), dependencyProvider);
+        _baseServiceWithCustomMapping = new TestServiceWithCustomMapping(repository.Object, Mock.Of<IMapper>(), dependencyProvider);
+        _baseServiceWithPureMapper = new TestServiceWithPureMapper(repository.Object, mapper, dependencyProvider);
     }
 
     public void Dispose()
@@ -346,7 +350,7 @@ public partial class BaseServiceUnitTest : IDisposable
     }
 
     [Fact]
-    public void TestGetItemByFilterAsync_WithoutPaging_WhenEntityExists_MustReturnResult()
+    public async Task TestGetItemByFilterAsync_WithoutPaging_WhenEntityExists_MustReturnResult()
     {
         ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
@@ -354,13 +358,13 @@ public partial class BaseServiceUnitTest : IDisposable
             DisablePaging = true
         };
 
-        var doctors = _baseService.GetItemByFilterAsync(filterAndSortCondition);
+        var doctors = await _baseService.GetItemByFilterAsync(filterAndSortCondition);
 
-        doctors.Result.Data.Count.Should().Be(4);
+        doctors.Data.Count.Should().Be(4);
     }
 
     [Fact]
-    public void TestGetItemByFilterAsync_WithPaging_WhenEntityExists_MustReturnResult()
+    public async Task TestGetItemByFilterAsync_WithPaging_WhenEntityExists_MustReturnResult()
     {
         ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
@@ -370,13 +374,13 @@ public partial class BaseServiceUnitTest : IDisposable
             PageNumber = 2
         };
 
-        var doctors = _baseService.GetItemByFilterAsync(filterAndSortCondition);
+        var doctors = await _baseService.GetItemByFilterAsync(filterAndSortCondition);
 
-        doctors.Result.Data.Count.Should().Be(1);
+        doctors.Data.Count.Should().Be(1);
     }
 
     [Fact]
-    public void TestGetItemByFilterAsync_WithTwoPaging_WhenEntityExists_MustReturnResult()
+    public async Task TestGetItemByFilterAsync_WithTwoPaging_WhenEntityExists_MustReturnResult()
     {
         var filterAndSortCondition = new FilterAndSortConditions
         {
@@ -385,13 +389,13 @@ public partial class BaseServiceUnitTest : IDisposable
             PageNumber = 2
         };
 
-        var doctors = _baseService.GetItemByFilterAsync(filterAndSortCondition);
+        var doctors = await _baseService.GetItemByFilterAsync(filterAndSortCondition);
 
-        doctors.Result.Data.Count.Should().Be(2);
+        doctors.Data.Count.Should().Be(2);
     }
 
     [Fact]
-    public void TestGetItemByFilterAsync_WithCondition_WithAutoMapping_WhenEntityExists_MustReturnResult()
+    public async Task TestGetItemByFilterAsync_WithCondition_WithAutoMapping_WhenEntityExists_MustReturnResult()
     {
         ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
@@ -399,9 +403,9 @@ public partial class BaseServiceUnitTest : IDisposable
             DisablePaging = true
         };
 
-        var doctors = _baseService.GetItemByFilterAsync(filterAndSortCondition, x => x.Language == "English");
+        var doctors = await _baseService.GetItemByFilterAsync(filterAndSortCondition, x => x.Language == "English");
 
-        doctors.Result.Data.Count.Should().Be(2);
+        doctors.Data.Count.Should().Be(2);
     }
 
     [Fact]
@@ -421,7 +425,7 @@ public partial class BaseServiceUnitTest : IDisposable
     }
 
     [Fact]
-    public void TestGetItemByFilterAsync_WithCondition_WithUseExpressionMapping_WhenEntityExists_MustReturnResult()
+    public async Task TestGetItemByFilterAsync_WithCondition_WithUseExpressionMapping_WhenEntityExists_MustReturnResult()
     {
         ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
@@ -429,11 +433,11 @@ public partial class BaseServiceUnitTest : IDisposable
             DisablePaging = true
         };
 
-        var doctors = _baseServiceWithExpression.GetItemByFilterAsync(filterAndSortCondition,
+        var doctors = await _baseServiceWithExpression.GetItemByFilterAsync(filterAndSortCondition,
             x => x.Language == "English",
             OutputModelMappingTypeEnum.UseExpression);
 
-        doctors.Result.Data.Count.Should().Be(2);
+        doctors.Data.Count.Should().Be(2);
     }
 
     [Fact]
@@ -453,7 +457,7 @@ public partial class BaseServiceUnitTest : IDisposable
     }
 
     [Fact]
-    public void TestGetItemByFilterAsync_WithCondition_WithUseMappingModelMapping_WhenEntityExists_MustReturnResult()
+    public async Task TestGetItemByFilterAsync_WithCondition_WithUseMappingModelMapping_WhenEntityExists_MustReturnResult()
     {
         ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
@@ -461,16 +465,16 @@ public partial class BaseServiceUnitTest : IDisposable
             DisablePaging = true
         };
 
-        var doctors = _baseServiceWithCustomMapping.GetItemByFilterAsync(filterAndSortCondition,
+        var doctors = await _baseServiceWithCustomMapping.GetItemByFilterAsync(filterAndSortCondition,
             x => x.Language == "English",
             OutputModelMappingTypeEnum.UseMappingModel);
 
-        doctors.Result.Data.Count.Should().Be(2);
+        doctors.Data.Count.Should().Be(2);
     }
 
 
     [Fact]
-    public void TestGetItemByFilterAsync_WithCondition_WithPureAutoMapperMapping_WhenEntityExists_MustReturnResult()
+    public async Task TestGetItemByFilterAsync_WithCondition_WithPureAutoMapperMapping_WhenEntityExists_MustReturnResult()
     {
         ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
@@ -478,11 +482,11 @@ public partial class BaseServiceUnitTest : IDisposable
             DisablePaging = true
         };
 
-        var doctors = _baseServiceWithPureMapper.GetItemByFilterAsync(filterAndSortCondition,
+        var doctors = await _baseServiceWithPureMapper.GetItemByFilterAsync(filterAndSortCondition,
             x => x.Language == "English",
             OutputModelMappingTypeEnum.PureAutoMapper);
 
-        doctors.Result.Data.Count.Should().Be(2);
+        doctors.Data.Count.Should().Be(2);
     }
 
     [Fact]
@@ -624,7 +628,69 @@ public partial class BaseServiceUnitTest : IDisposable
     }
 
     [Fact]
-    public void TestGetItemsByFilterAsync_WithoutPaging_WhenEntityExists_MustReturnResult()
+    public void TestGetItemsByFilter_WithoutPaging_WithExtraCondition_WhenEntityExists_MustReturnResult()
+    {
+        ResetList();
+        var filterAndSortCondition = new FilterAndSortConditions
+        {
+            DisablePaging = true
+        };
+        var doctors = _baseService.GetItemsByFilter(filterAndSortCondition, x => x.Language == "Spanish");
+
+        doctors.Data.Count.Should().Be(1);
+        doctors.Data.All(x => x.Language == "Spanish").Should().BeTrue();
+    }
+
+    [Fact]
+    public void TestGetItemsByFilter_WithoutPaging_WithFilter_WhenEntityExists_MustReturnResult()
+    {
+        ResetList();
+        var filterAndSortCondition = new FilterAndSortConditions
+        {
+            DisablePaging = true,
+            WhereConditionText = "Language = \"Spanish\""
+        };
+        var doctors = _baseService.GetItemsByFilter(filterAndSortCondition);
+
+        doctors.Data.Count.Should().Be(1);
+        doctors.Data.All(x => x.Language == "Spanish").Should().BeTrue();
+    }
+
+    [Fact]
+    public void TestGetItemsByFilter_WithoutPaging_WithSort_WhenEntityExists_MustReturnResult()
+    {
+        ResetList();
+        var filterAndSortCondition = new FilterAndSortConditions
+        {
+            DisablePaging = true,
+            SortText = "Rate"
+        };
+        var doctors = _baseService.GetItemsByFilter(filterAndSortCondition);
+
+        doctors.Data.First().Rate.Should().Be(2);
+        doctors.Data.Last().Rate.Should().Be(4);
+    }
+
+    [Fact]
+    public void TestGetItemsByFilter_WithoutPaging_WithFilterAndSort_WhenEntityExists_MustReturnResult()
+    {
+        ResetList();
+        var filterAndSortCondition = new FilterAndSortConditions
+        {
+            DisablePaging = true,
+            SortText = "Rate",
+            WhereConditionText = "Language = \"English\""
+        };
+        var doctors = _baseService.GetItemsByFilter(filterAndSortCondition);
+
+        doctors.Data.Count.Should().Be(2);
+        doctors.Data.All(x => x.Language == "English").Should().BeTrue();
+        doctors.Data.First().Rate.Should().Be(2);
+        doctors.Data.Last().Rate.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task TestGetItemsByFilterAsync_WithoutPaging_WhenEntityExists_MustReturnResult()
     {
         ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
@@ -632,13 +698,13 @@ public partial class BaseServiceUnitTest : IDisposable
             DisablePaging = true
         };
 
-        var doctors = _baseService.GetItemsByFilterAsync(filterAndSortCondition);
+        var doctors = await _baseService.GetItemsByFilterAsync(filterAndSortCondition);
 
-        doctors.Result.Data.Count.Should().Be(4);
+        doctors.Data.Count.Should().Be(4);
     }
 
     [Fact]
-    public void TestGetItemsByFilterAsync_WithPaging_WhenEntityExists_MustReturnResult()
+    public async Task TestGetItemsByFilterAsync_WithPaging_WhenEntityExists_MustReturnResult()
     {
         ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
@@ -648,13 +714,13 @@ public partial class BaseServiceUnitTest : IDisposable
             PageNumber = 2
         };
 
-        var doctors = _baseService.GetItemsByFilterAsync(filterAndSortCondition);
+        var doctors = await _baseService.GetItemsByFilterAsync(filterAndSortCondition);
 
-        doctors.Result.Data.Count.Should().Be(1);
+        doctors.Data.Count.Should().Be(1);
     }
 
     [Fact]
-    public void TestGetItemsByFilterAsync_WithTwoPaging_WhenEntityExists_MustReturnResult()
+    public async Task TestGetItemsByFilterAsync_WithTwoPaging_WhenEntityExists_MustReturnResult()
     {
         var filterAndSortCondition = new FilterAndSortConditions
         {
@@ -663,13 +729,13 @@ public partial class BaseServiceUnitTest : IDisposable
             PageNumber = 2
         };
 
-        var doctors = _baseService.GetItemsByFilterAsync(filterAndSortCondition);
+        var doctors = await _baseService.GetItemsByFilterAsync(filterAndSortCondition);
 
-        doctors.Result.Data.Count.Should().Be(2);
+        doctors.Data.Count.Should().Be(2);
     }
 
     [Fact]
-    public void TestGetItemsByFilterAsync_WithCondition_WithAutoMapping_WhenEntityExists_MustReturnResult()
+    public async Task TestGetItemsByFilterAsync_WithCondition_WithAutoMapping_WhenEntityExists_MustReturnResult()
     {
         ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
@@ -677,9 +743,9 @@ public partial class BaseServiceUnitTest : IDisposable
             DisablePaging = true
         };
 
-        var doctors = _baseService.GetItemsByFilterAsync(filterAndSortCondition, x => x.Language == "English");
+        var doctors = await _baseService.GetItemsByFilterAsync(filterAndSortCondition, x => x.Language == "English");
 
-        doctors.Result.Data.Count.Should().Be(2);
+        doctors.Data.Count.Should().Be(2);
     }
 
     [Fact]
@@ -699,7 +765,7 @@ public partial class BaseServiceUnitTest : IDisposable
     }
 
     [Fact]
-    public void TestGetItemsByFilterAsync_WithCondition_WithUseExpressionMapping_WhenEntityExists_MustReturnResult()
+    public async Task TestGetItemsByFilterAsync_WithCondition_WithUseExpressionMapping_WhenEntityExists_MustReturnResult()
     {
         ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
@@ -707,11 +773,11 @@ public partial class BaseServiceUnitTest : IDisposable
             DisablePaging = true
         };
 
-        var doctors = _baseServiceWithExpression.GetItemsByFilterAsync<DoctorTestOutputModel>(filterAndSortCondition,
+        var doctors = await _baseServiceWithExpression.GetItemsByFilterAsync<DoctorTestOutputModel>(filterAndSortCondition,
             x => x.Language == "English",
             OutputModelMappingTypeEnum.UseExpression, CancellationToken.None);
 
-        doctors.Result.Data.Count.Should().Be(2);
+        doctors.Data.Count.Should().Be(2);
     }
 
     [Fact]
@@ -731,7 +797,7 @@ public partial class BaseServiceUnitTest : IDisposable
     }
 
     [Fact]
-    public void TestGetItemsByFilterAsync_WithCondition_WithUseMappingModelMapping_WhenEntityExists_MustReturnResult()
+    public async Task TestGetItemsByFilterAsync_WithCondition_WithUseMappingModelMapping_WhenEntityExists_MustReturnResult()
     {
         ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
@@ -739,16 +805,16 @@ public partial class BaseServiceUnitTest : IDisposable
             DisablePaging = true
         };
 
-        var doctors = _baseServiceWithCustomMapping.GetItemsByFilterAsync<DoctorTestOutputModel>(filterAndSortCondition,
+        var doctors = await _baseServiceWithCustomMapping.GetItemsByFilterAsync<DoctorTestOutputModel>(filterAndSortCondition,
             x => x.Language == "English",
             OutputModelMappingTypeEnum.UseMappingModel, CancellationToken.None);
 
-        doctors.Result.Data.Count.Should().Be(Doctors.Count(x => x.Language == "English"));
+        doctors.Data.Count.Should().Be(Doctors.Count(x => x.Language == "English"));
     }
 
 
     [Fact]
-    public void TestGetItemsByFilterAsync_WithCondition_WithPureAutoMapperMapping_WhenEntityExists_MustReturnResult()
+    public async Task TestGetItemsByFilterAsync_WithCondition_WithPureAutoMapperMapping_WhenEntityExists_MustReturnResult()
     {
         ResetList();
         var filterAndSortCondition = new FilterAndSortConditions
@@ -756,11 +822,11 @@ public partial class BaseServiceUnitTest : IDisposable
             DisablePaging = true
         };
 
-        var doctors = _baseServiceWithPureMapper.GetItemsByFilterAsync<DoctorTest>(filterAndSortCondition,
+        var doctors = await _baseServiceWithPureMapper.GetItemsByFilterAsync<DoctorTest>(filterAndSortCondition,
             x => x.Language == "English",
             OutputModelMappingTypeEnum.PureAutoMapper, CancellationToken.None);
 
-        doctors.Result.Data.Count.Should().Be(2);
+        doctors.Data.Count.Should().Be(2);
     }
 
     [Fact]
@@ -932,12 +998,12 @@ public partial class BaseServiceUnitTest : IDisposable
 
         await _baseService.RemoveAsync(doctorId);
 
-        var doctor = _baseService.GetItemByFilterAsync(new FilterAndSortConditions
+        var doctor = await _baseService.GetItemByFilterAsync(new FilterAndSortConditions
         {
             DisablePaging = true
         }, x => x.DoctorId == doctorId);
 
-        doctor.Result.Data.Count.Should().Be(0);
+        doctor.Data.Count.Should().Be(0);
         (oldCount - Doctors.Count).Should().Be(1);
     }
 
@@ -1025,12 +1091,12 @@ public partial class BaseServiceUnitTest : IDisposable
             LastName = "Basim"
         });
 
-        var doctor = _baseService.GetItemByFilterAsync(new FilterAndSortConditions
+        var doctor = await _baseService.GetItemByFilterAsync(new FilterAndSortConditions
         {
             DisablePaging = true
         }, x => x.DoctorId == 1);
 
-        doctor.Result.Data.First().LastName.Should().Be("Basim");
+        doctor.Data.First().LastName.Should().Be("Basim");
     }
 
     [Fact]
@@ -1042,12 +1108,12 @@ public partial class BaseServiceUnitTest : IDisposable
             LastName = "Basim"
         }, OutputModelMappingTypeEnum.UseAutoMapper);
 
-        var doctor = _baseService.GetItemByFilterAsync(new FilterAndSortConditions
+        var doctor = await _baseService.GetItemByFilterAsync(new FilterAndSortConditions
         {
             DisablePaging = true
         }, x => x.DoctorId == 1, OutputModelMappingTypeEnum.UseAutoMapper);
 
-        doctor.Result.Data.First().LastName.Should().Be("Basim");
+        doctor.Data.First().LastName.Should().Be("Basim");
     }
 
     [Fact]
@@ -1059,12 +1125,12 @@ public partial class BaseServiceUnitTest : IDisposable
             LastName = "Basim"
         }, OutputModelMappingTypeEnum.PureAutoMapper);
 
-        var doctor = _baseServiceWithPureMapper.GetItemByFilterAsync(new FilterAndSortConditions
+        var doctor = await _baseServiceWithPureMapper.GetItemByFilterAsync(new FilterAndSortConditions
         {
             DisablePaging = true
         }, x => x.DoctorId == 1, OutputModelMappingTypeEnum.PureAutoMapper);
 
-        doctor.Result.Data.First().MyLastName.Should().Be("Basim");
+        doctor.Data.First().MyLastName.Should().Be("Basim");
     }
 
     [Fact]

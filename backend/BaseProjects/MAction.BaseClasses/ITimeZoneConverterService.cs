@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using MAction.BaseServices.ViewModel;
+using MAction.BaseClasses.OutpuModels;
 
-namespace MAction.BaseServices;
+namespace MAction.BaseClasses;
 
 public interface ITimeZoneConverterService
 {

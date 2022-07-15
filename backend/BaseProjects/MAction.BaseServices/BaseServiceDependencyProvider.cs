@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using MAction.BaseClasses;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -10,6 +11,10 @@ namespace MAction.BaseServices;
 
 public class BaseServiceDependencyProvider : IBaseServiceDependencyProvider
 {
+    public bool HasSystemPrivilege()
+    {
+        return _internalMode;
+    }
     protected bool _internalMode;
 
     protected readonly IHttpContextAccessor _httpContextAccessor;
@@ -59,11 +64,17 @@ public class BaseServiceDependencyProvider : IBaseServiceDependencyProvider
     {
         if (UserId == null)
             return false;
+        if (IsInRole("admin"))
+        {
+            return true;
+        }
+        else
+        {
+            var t = _authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, policyName);
+            t.Wait();
 
-        var t =_authorizationService.AuthorizeAsync(_httpContextAccessor.HttpContext.User, policyName);
-        t.Wait();
-
-        return t.Result.Succeeded;
+            return t.Result.Succeeded;
+        }
     }
 
 }

@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using MAction.BaseClasses;
 
-namespace MAction.BaseServices.Tests;
+namespace MAction.BaseProject.Tests;
 
 public class DoctorTest : BaseEntityWithCreationInfo
 {

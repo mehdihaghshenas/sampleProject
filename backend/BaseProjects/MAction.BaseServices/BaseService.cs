@@ -4,53 +4,37 @@ using MAction.BaseClasses.Exceptions;
 using MAction.BaseClasses.Helpers;
 using MAction.BaseClasses.InputModels;
 using MAction.BaseClasses.OutpuModels;
+using MAction.BaseServices.ViewModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Dynamic.Core;
 using System.Linq.Expressions;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace MAction.BaseServices;
 
-
-public class BaseService<TEntity, TInputModel, TOutputModel> : IBaseService<TEntity, TInputModel, TOutputModel>
-    where TEntity : BaseEntity
+public class BaseServiceWithKey<TKey, TEntity, TInputModel, TOutputModel> : IBaseService<TKey, TEntity, TInputModel, TOutputModel>
+    where TEntity : BaseEntity where TKey : new()
 {
     protected readonly IMapper Mapper;
-    private readonly IBaseRepository<TEntity> _repository;
+    private readonly IBaseServiceDependencyProvider _baseServiceDependencyProvider;
+    private readonly IBaseRepository<TEntity, TKey> _repository;
+    public void SetHasSystemPrivilege(bool value)
+    {
+        _baseServiceDependencyProvider.SetInternalMode(value);
+        _repository.SetHasSystemPrivilege(value);
+    }
 
-    public BaseService(IBaseRepository<TEntity> repository, IMapper mapper)
+    public BaseServiceWithKey(IBaseRepository<TEntity, TKey> repository, IMapper mapper, IBaseServiceDependencyProvider baseServiceDependencyProvider)
     {
         Mapper = mapper;
+        _baseServiceDependencyProvider = baseServiceDependencyProvider;
         _repository = repository;
     }
 
-    public TOutputModel Get(object entityId, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
-    {
-        var filter = ExpressionHelpers.GetIdFilter<TEntity>(entityId);
-        var res = GetItemByFilter(new FilterAndSortConditions() { DisablePaging = null, PageNumber = 1, PageSize = 10 },
-            filter, mappingType);
-        if (res.Data.Count == 0)
-            throw new InvalidEntityException();
-        return res.Data.First();
-    }
-
-    public async Task<TOutputModel> GetAsync(object entityId,
-        OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto,
-        CancellationToken cancellationToken = default)
-    {
-        var filter = ExpressionHelpers.GetIdFilter<TEntity>(entityId);
-        var res = await GetItemByFilterAsync(
-            new FilterAndSortConditions() { DisablePaging = null, PageNumber = 1, PageSize = 10 }, filter, mappingType,
-            cancellationToken);
-        if (res.Data.Count == 0)
-            throw new InvalidEntityException();
-        else
-            return res.Data.First();
-    }
-
+    #region GetSet TEntity
     public DynamicQueryFilterResult<TOutputModel> GetItemByFilter(FilterAndSortConditions conditions,
         Expression<Func<TEntity, bool>> extraWhereCondition = null,
         OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
@@ -77,6 +61,95 @@ public class BaseService<TEntity, TInputModel, TOutputModel> : IBaseService<TEnt
         Expression<Func<TEntity, bool>> extraWhereCondition = null, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(GetItemsByFilter(filter, extraWhereCondition));
+    }
+    protected IQueryable<TEntity> GetFilterQuery(FilterAndSortConditions filter,
+    Expression<Func<TEntity, bool>> extraWhereCondition, out IQueryable<TEntity> withoutPaging)
+    {
+        var beforeSort = GetAll();
+
+        if (filter != null && !string.IsNullOrEmpty(filter.WhereConditionText))
+        {
+            beforeSort = beforeSort.Where(filter.WhereConditionText);
+        }
+
+        beforeSort = extraWhereCondition != null ? beforeSort.Where(extraWhereCondition) : beforeSort.AsQueryable();
+        var sortedQuery = beforeSort;
+
+        if (filter != null && !string.IsNullOrEmpty(filter.SortText))
+            sortedQuery = sortedQuery.OrderBy(filter.SortText);
+
+        withoutPaging = beforeSort;
+        if (filter == null || filter.DisablePaging == true)
+            return sortedQuery;
+        return sortedQuery.Skip((filter.PageNumber - 1) * filter.PageSize).Take(filter.PageSize);
+    }
+
+    protected IQueryable<TEntity> GetAll()
+    {
+        var result = _repository.GetAll();
+        if (!_baseServiceDependencyProvider.HasSystemPrivilege())
+            result = result.Where(GetSelectPermissionExpression());
+
+        return result;
+    }
+
+    public TEntity Insert(TEntity entity)
+    {
+        if (!_baseServiceDependencyProvider.HasSystemPrivilege())
+            CheckInsertPermission(entity);
+
+        return _repository.InsertWithSaveChange(entity);
+    }
+
+    public async Task<TEntity> InsertAsync(TEntity entity)
+    {
+        if (!_baseServiceDependencyProvider.HasSystemPrivilege())
+            CheckInsertPermission(entity);
+
+        return await _repository.InsertWithSaveChangeAsync(entity);
+    }
+
+    public void Update(TEntity entity)
+    {
+        if (!_baseServiceDependencyProvider.HasSystemPrivilege())
+            CheckUpdatePermission(entity);
+
+        _repository.UpdateWithSaveChange(entity);
+    }
+
+    public async Task<int> UpdateAsync(TEntity entity)
+    {
+        if (!_baseServiceDependencyProvider.HasSystemPrivilege())
+            CheckUpdatePermission(entity);
+
+        return await _repository.UpdateWithSaveChangeAsync(entity);
+    }
+
+    #endregion
+
+    #region GetWith TResult
+    public TOutputModel Get(TKey entityId, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
+    {
+        var filter = ExpressionHelpers.GetIdFilter<TEntity>(entityId);
+        var res = GetItemByFilter(new FilterAndSortConditions() { DisablePaging = null, PageNumber = 1, PageSize = 10 },
+            filter, mappingType);
+        if (res.Data.Count == 0)
+            throw new InvalidEntityException();
+        return res.Data.First();
+    }
+
+    public async Task<TOutputModel> GetAsync(TKey entityId,
+        OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto,
+        CancellationToken cancellationToken = default)
+    {
+        var filter = ExpressionHelpers.GetIdFilter<TEntity>(entityId);
+        var res = await GetItemByFilterAsync(
+            new FilterAndSortConditions() { DisablePaging = null, PageNumber = 1, PageSize = 10 }, filter, mappingType,
+            cancellationToken);
+        if (res.Data.Count == 0)
+            throw new InvalidEntityException();
+        else
+            return res.Data.First();
     }
 
     public DynamicQueryFilterResult<TResult> GetItemsByFilter<TResult>(FilterAndSortConditions conditions,
@@ -175,28 +248,6 @@ public class BaseService<TEntity, TInputModel, TOutputModel> : IBaseService<TEnt
         return Task.FromResult(GetItemsByFilter<TResult>(conditions, extraWhereCondition, mappingType));
     }
 
-    //ToDO Move it to repository 
-    private IQueryable<TEntity> GetFilterQuery(FilterAndSortConditions filter,
-        Expression<Func<TEntity, bool>> extraWhereCondition, out IQueryable<TEntity> withoutPaging)
-    {
-        var beforeSort = _repository.GetAll();
-
-        //TODO Add Language filter in futures
-        if (filter != null && !string.IsNullOrEmpty(filter.WhereConditionText))
-        {
-            //TODO Add filter Text
-        }
-
-        beforeSort = extraWhereCondition != null ? beforeSort.Where(extraWhereCondition) : beforeSort.AsQueryable();
-        //TODO Add Sort 
-        var sortedQuery = beforeSort;
-
-        withoutPaging = beforeSort;
-        if (filter == null || filter.DisablePaging == true)
-            return sortedQuery;
-        return sortedQuery.Skip((filter.PageNumber - 1) * filter.PageSize).Take(filter.PageSize);
-    }
-
     private static DynamicQueryFilterResult<TResult> MapToDynamicFilterResult<TResult>(PageParams pageParams,
         IQueryable<TResult> query, IQueryable<TResult> withoutPagingQuery)
     {
@@ -219,7 +270,9 @@ public class BaseService<TEntity, TInputModel, TOutputModel> : IBaseService<TEnt
         };
         return res;
     }
+    #endregion
 
+    #region Mapping Input and Output to entity
     private TEntity GetEntityFromInputModel(TInputModel inputModel, OutputModelMappingTypeEnum mappingType)
     {
         switch (mappingType)
@@ -271,11 +324,18 @@ public class BaseService<TEntity, TInputModel, TOutputModel> : IBaseService<TEnt
             output = Mapper.Map<TOutputModel>(entity);
         return output;
     }
+    #endregion
+
+    #region Insert/Update with TInputModel
 
     public TOutputModel Insert(TInputModel inputModel,
         OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
     {
         var entity = GetEntityFromInputModel(inputModel, mappingType);
+
+        if (!_baseServiceDependencyProvider.HasSystemPrivilege())
+            CheckInsertPermission(entity);
+
         entity = _repository.InsertWithSaveChange(entity);
         return GetOutputModelFromEntity(entity, mappingType);
     }
@@ -285,18 +345,21 @@ public class BaseService<TEntity, TInputModel, TOutputModel> : IBaseService<TEnt
         CancellationToken cancellationToken = default)
     {
         var entity = GetEntityFromInputModel(inputModel, mappingType);
+        if (!_baseServiceDependencyProvider.HasSystemPrivilege())
+            CheckInsertPermission(entity);
+
         entity = await _repository.InsertWithSaveChangeAsync(entity, cancellationToken);
         return GetOutputModelFromEntity(entity, mappingType);
     }
 
-    public Task RemoveAsync(object id, CancellationToken cancellationToken = default)
-    {
-        return _repository.RemoveWithSaveChangeAsync(id, cancellationToken);
-    }
+
 
     public void Update(TInputModel inputModel, OutputModelMappingTypeEnum mappingType = OutputModelMappingTypeEnum.Auto)
     {
         var entity = GetEntityFromInputModel(inputModel, mappingType);
+        if (!_baseServiceDependencyProvider.HasSystemPrivilege())
+            CheckUpdatePermission(entity);
+
         _repository.UpdateWithSaveChange(entity);
     }
 
@@ -305,6 +368,66 @@ public class BaseService<TEntity, TInputModel, TOutputModel> : IBaseService<TEnt
         CancellationToken cancellationToken = default)
     {
         TEntity entity = GetEntityFromInputModel(inputModel, mappingType);
+        if (!_baseServiceDependencyProvider.HasSystemPrivilege())
+            CheckUpdatePermission(entity);
+
         return _repository.UpdateWithSaveChangeAsync(entity, cancellationToken);
     }
+    #endregion
+
+    public Task RemoveAsync(TKey id, CancellationToken cancellationToken = default)
+    {
+        var entity = _repository.Get(id);
+
+        if (!_baseServiceDependencyProvider.HasSystemPrivilege())
+            CheckDeletePermission(entity);
+
+        return _repository.RemoveWithSaveChangeAsync(id, cancellationToken);
+    }
+
+    #region Perimission Management
+
+    public virtual Expression<Func<TEntity, bool>> GetSelectPermissionExpression()
+    {
+        throw new NotImplementedException();
+    }
+
+    public virtual void CheckInsertPermission(TEntity entity)
+    {
+        throw new ForbiddenExpection();
+    }
+
+    public virtual void CheckUpdatePermission(TEntity entity)
+    {
+        throw new ForbiddenExpection();
+
+    }
+
+    public virtual void CheckDeletePermission(TEntity entity)
+    {
+        throw new ForbiddenExpection();
+
+    }
+    #endregion
+
+    #region History Management
+    public async Task<DynamicQueryFilterResult<EventHistoryOutputModel<TOutputModel, TKey>>> GetEventHistoryAsync(TKey entityId)
+    {
+        var outpout = await GetAsync(entityId);
+        return new DynamicQueryFilterResult<EventHistoryOutputModel<TOutputModel, TKey>>()
+        {
+            Data = new List<EventHistoryOutputModel<TOutputModel, TKey>>()
+            {
+                new EventHistoryOutputModel<TOutputModel, TKey>()
+                {
+                    ChangesContent = outpout,
+                    EventHistoryId = new TKey(),
+                    EventHistoryTypeId = EventHistoryTypeEnum.Added,
+                    RequestId = 1,
+                    PrimeryKeyId = entityId
+                }
+            },
+        };
+    }
+    #endregion
 }

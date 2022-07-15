@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations.Schema;
-using MAction.BaseClasses.Extentions;
+using MAction.BaseClasses.Extensions;
 
 namespace MAction.BaseEFRepository
 {
@@ -32,9 +32,8 @@ namespace MAction.BaseEFRepository
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            DBContextExtentionAndConfiguration.OnModelCreating(modelBuilder, _domainType, _domainTypes?.ToList());
-            DBContextExtentionAndConfiguration.OnModelCreatingAddLanguage(modelBuilder);
-
+            DBContextExtensionAndConfiguration.OnModelCreating(modelBuilder, _domainType, _domainTypes);
+            DBContextExtensionAndConfiguration.OnModelCreatingAddLanguage(modelBuilder);
             base.OnModelCreating(modelBuilder);
             //using reflectyion to Map Data
 
@@ -43,25 +42,25 @@ namespace MAction.BaseEFRepository
         #region replacestrignPersianBug
         public override int SaveChanges()
         {
-            DBContextExtentionAndConfiguration.CleanString(ChangeTracker);
+            DBContextExtensionAndConfiguration.CleanString(ChangeTracker);
             return base.SaveChanges();
         }
 
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
-            DBContextExtentionAndConfiguration.CleanString(ChangeTracker);
+            DBContextExtensionAndConfiguration.CleanString(ChangeTracker);
             return base.SaveChanges(acceptAllChangesOnSuccess);
         }
 
         public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
         {
-            DBContextExtentionAndConfiguration.CleanString(ChangeTracker);
+            DBContextExtensionAndConfiguration.CleanString(ChangeTracker);
             return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            DBContextExtentionAndConfiguration.CleanString(ChangeTracker);
+            DBContextExtensionAndConfiguration.CleanString(ChangeTracker);
             return base.SaveChangesAsync(cancellationToken);
         }
         #endregion

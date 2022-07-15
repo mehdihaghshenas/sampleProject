@@ -10,8 +10,6 @@ public abstract class BaseDTO<TEntity, TDto> : IBaseDto where TEntity : IBaseEnt
     protected IMappingExpression<TDto, TEntity> DtoToDomainMapping { get; private set; }
     protected IMappingExpression<TEntity, TDto> DomainToDtoMapping { get; private set; }
 
-    private readonly IMapper _mapper;
-
     public virtual void CustomReverseMapping(IMappingExpression<TEntity, TDto> mapping)
     {
     }
@@ -22,36 +20,34 @@ public abstract class BaseDTO<TEntity, TDto> : IBaseDto where TEntity : IBaseEnt
 
     public BaseDTO()
     {
-        var configuration =
-            new MapperConfiguration(cfg =>
-            {
-                DomainToDtoMapping = cfg.CreateMap<TEntity, TDto>();
-                DtoToDomainMapping = cfg.CreateMap<TDto, TEntity>();
-            });
+        //var configuration =
+        //    new MapperConfiguration(cfg =>
+        //    {
+        //        DomainToDtoMapping = cfg.CreateMap<TEntity, TDto>();
+        //        DtoToDomainMapping = cfg.CreateMap<TDto, TEntity>();
+        //    });
 
-        _mapper = new Mapper(configuration);
+        //var refProperties = from p in typeof(TEntity).GetProperties()
+        //    where p.PropertyType.BaseType == typeof(BaseEntity)
+        //    select p;
 
-        var refProperties = from p in typeof(TEntity).GetProperties()
-            where p.PropertyType.BaseType == typeof(BaseEntity)
-            select p;
-
-        foreach (var prop in refProperties)
-        {
-            DtoToDomainMapping.ForMember(prop.Name, m => m.Ignore());
-        }
+        //foreach (var prop in refProperties)
+        //{
+        //    DtoToDomainMapping.ForMember(prop.Name, m => m.Ignore());
+        //}
     }
 
-    public TEntity ToEntity()
+    public TEntity ToEntity(IMapper _mapper)
     {
         return _mapper.Map<TEntity>(this);
     }
 
-    public TDto FromEntity(TEntity entity)
+    public static TDto FromEntity(TEntity entity, IMapper _mapper)
     {
         return _mapper.Map<TDto>(entity);
     }
 
-    public TDto FromJson(string json)
+    public TDto FromJson(string json, IMapper _mapper)
     {
         var result = JsonConvert.DeserializeObject(json);
 
@@ -62,6 +58,7 @@ public abstract class BaseDTO<TEntity, TDto> : IBaseDto where TEntity : IBaseEnt
     {
         var t = profile.CreateMap<TDto, TEntity>();
         var q = profile.CreateMap<TEntity, TDto>();
+
         this.CustomMapping(t);
         this.CustomReverseMapping(q);
     }

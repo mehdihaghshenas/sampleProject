@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using MAction.BaseServices.ViewModel;
+using MAction.BaseClasses;
+using MAction.BaseClasses.OutpuModels;
 using Microsoft.AspNetCore.Http;
 using TimeZoneConverter;
 
