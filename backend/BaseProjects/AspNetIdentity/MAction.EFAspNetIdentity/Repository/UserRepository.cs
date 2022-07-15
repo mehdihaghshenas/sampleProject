@@ -1,38 +1,43 @@
 ﻿using MAction.BaseEFRepository;
-using MAction.AspNetIdentity.EFCore.Domain;
 using Microsoft.EntityFrameworkCore;
+using MAction.BaseClasses;
+using MAction.AspNetIdentity.Base.Entities;
+using Microsoft.AspNetCore.Identity;
 
 namespace MAction.AspNetIdentity.EFCore.Repository;
-public class UserRepository : EFRepository<ApplicationUser>, IUserRepository
+public class UserRepository<TUser, TRole, TKey> : EFRepository<TUser, TKey>, IUserRepository<TUser, TRole, TKey>
+    where TUser : IdentityUser<TKey>, IUser, IBaseEntity, new()
+    where TKey : IEquatable<TKey>
+    where TRole : IdentityRole<TKey>, IRole, IBaseEntity, new()
 {
-    private readonly IRoleRepository roleRepository;
-    private readonly IdentityContext _identitycontext;
-    public UserRepository(IdentityContext context, IRoleRepository roleRepository) : base(context)
+    private readonly IRoleRepository<TRole, TKey> _roleRepository;
+    private readonly IdentityContext<TUser, TRole, TKey> _identityContext;
+    public UserRepository(IdentityContext<TUser, TRole, TKey> context, IRoleRepository<TRole, TKey> roleRepository, IBaseServiceDependencyProvider baseServiceDependencyProvider) : base(context, baseServiceDependencyProvider)
     {
-        this.roleRepository = roleRepository;
-        _identitycontext= context;
+        this._roleRepository = roleRepository;
+        _identityContext = context;
     }
 
-    public async Task<ApplicationUser> GetByEmailOrPhoneNumber(string input, CancellationToken cancellationToken)
+    public async Task<TUser> GetByEmailOrPhoneNumber(string input, CancellationToken cancellationToken)
     {
         var users = GetAll().Where(p => p.Email == input || p.PhoneNumber == input || p.UserName == input);
         return await users.FirstAsync();
     }
 
-    public async Task<ApplicationUser?> GetByPhoneNumber(string phone, CancellationToken cancellationToken)
+    public async Task<TUser?> GetByPhoneNumber(string phone, CancellationToken cancellationToken)
     {
         return await GetAll().Where(p => p.PhoneNumber == phone).FirstOrDefaultAsync();
     }
 
-    public async Task<bool> Exists(int id, string email, string phoneNumber, CancellationToken cancellationToken)
+    public async Task<bool> Exists(TKey id, string email, string phoneNumber, CancellationToken cancellationToken)
     {
-        return await Task.FromResult(GetAll().Any(p => p.Id != id && (p.Email == email || p.PhoneNumber == phoneNumber)));
+        return await Task.FromResult(GetAll().Any(p => p.Id.ToString() != id.ToString() && (p.Email == email || p.PhoneNumber == phoneNumber)));
     }
 
-    public async Task<List<ApplicationRole>> GetUserRoles(int id, CancellationToken cancellationToken)
+    public async Task<List<TRole>> GetUserRoles(TKey id, CancellationToken cancellationToken)
     {
-        var userRoles = await _identitycontext.UserRoles.Where(q => q.UserId == id).Select(p => p.RoleId).ToListAsync(cancellationToken);
-        return await roleRepository.GetAll().Where(p => userRoles.Contains(p.Id)).ToListAsync();
+        var userRoles = await _identityContext.UserRoles.Where(q => q.UserId.ToString() == id.ToString()).Select(p => p.RoleId).ToListAsync(cancellationToken);
+        return await _roleRepository.GetAll().Where(p => userRoles.Contains(p.Id)).ToListAsync();
     }
 
 }

@@ -6,26 +6,32 @@ using MAction.AspNetIdentity.EFCore;
 using MAction.AspNetIdentity.Base;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using MAction.AspNetIdentity.EFCore.Domain;
-using MAction.AspNetIdentity.EFCore.Service;
 using Microsoft.AspNetCore.Builder;
 using MAction.AspNetIdentity.EFCore.Repository;
+using Microsoft.AspNetCore.Identity;
+using MAction.AspNetIdentity.Base.Entities;
+using MAction.AspNetIdentity.Base.Services;
 
 namespace MAction.BaseClasses;
 public class ServiceRegistration
 {
-    public static void AddConfigureService<T>(IServiceCollection services, string connectionString, JwtSettings jwtSettings, Type userEmailSender) where T: IdentityContext
+    public static void AddConfigureService<TContext, TUser, TRole, TKey>(IServiceCollection services, string connectionString, JwtSettings jwtSettings, Type userEmailSender)
+        where TContext : IdentityContext<TUser, TRole, TKey>
+        where TUser : IdentityUser<TKey>, IUser, IBaseEntity, new()
+        where TRole : IdentityRole<TKey>, IRole, IBaseEntity, new()
+        where TKey : class, IEquatable<TKey>
     {
         if (!userEmailSender.IsAssignableFrom(typeof(IUserEmailSender)))
             throw new Exception("userEmailSender should be assignble from IUserEmailSender");
 
         services.AddScoped(typeof(IUserEmailSender), userEmailSender);
-        services.AddScoped<IJWTService, JwtServices>();
-        services.AddScoped<IUserService, UserService>();
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddScoped<IJWTService, JwtService<TUser, TRole, TKey>>();
+        services.AddScoped<IUserService, UserService<TUser, TRole, TKey>>();
+        services.AddScoped<IRoleService, RoleService<TRole, TKey>>();
+        services.AddScoped<IUserRepository<TUser, TRole, TKey>, UserRepository<TUser, TRole, TKey>>();
+        services.AddScoped<IRoleRepository<TRole, TKey>, RoleRepository<TUser, TRole, TKey>>();
 
-        services.AddIdentityCore<ApplicationUser>(identity =>
+        services.AddIdentityCore<TUser>(identity =>
         {
             identity.Password.RequiredLength = jwtSettings.RequiredLength;
             identity.Password.RequireDigit = jwtSettings.PasswordRequireDigit;
@@ -41,8 +47,8 @@ public class ServiceRegistration
             identity.Lockout.AllowedForNewUsers = false;
             // other options
         }
-        ).AddEntityFrameworkStores<T>();
-   
+        ).AddEntityFrameworkStores<TContext>();
+
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
