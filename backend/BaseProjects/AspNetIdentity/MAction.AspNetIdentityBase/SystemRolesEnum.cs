@@ -9,5 +9,5 @@ namespace MAction.AspNetIdentity.Base;
 public enum SystemRolesEnum : byte
 {
     Admin = 1,
-    User = 2,
+    User = 2
 }

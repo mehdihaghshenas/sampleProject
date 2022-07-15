@@ -74,10 +74,13 @@ namespace MAction.AspNetIdentity.Base
     public class SecurityPolicies : PoliciesBase
     {
         public static string CanChangeUserPasswordWithOutOldPassword { get; } = $"{nameof(SecurityPolicies)}.{nameof(CanChangeUserPasswordWithOutOldPassword)}";
-        public static string AllowToPermiteAllPermission { get; } = $"{nameof(SecurityPolicies)}.{nameof(AllowToPermiteAllPermission)}";
+        public static string AllowToPermitAllPermission { get; } = $"{nameof(SecurityPolicies)}.{nameof(AllowToPermitAllPermission)}";
         public static string AllowToChangeUserPassword { get; } = $"{nameof(SecurityPolicies)}.{nameof(AllowToChangeUserPassword)}";
         public static string AllowToManagePermission { get; } = $"{nameof(SecurityPolicies)}.{nameof(AllowToManagePermission)}";
         public static string AllowToManageUsers { get; } = $"{nameof(SecurityPolicies)}.{nameof(AllowToManageUsers)}";
         public static string AllowToManageRoles { get; } = $"{nameof(SecurityPolicies)}.{nameof(AllowToManageRoles)}";
+        public static string AllowToViewRoles { get; } = $"{nameof(SecurityPolicies)}.{nameof(AllowToViewRoles)}";
+        public static string AllowToViewUsers { get; } = $"{nameof(SecurityPolicies)}.{nameof(AllowToViewUsers)}";
+        public static string AllowToViewPermission { get; } = $"{nameof(SecurityPolicies)}.{nameof(AllowToViewPermission)}";
     }
 }
