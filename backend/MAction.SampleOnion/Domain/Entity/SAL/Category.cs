@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using MAction.BaseClasses.Language;
 using MAction.BaseClasses.Helpers;
-
+using MAction.BaseClasses;
 namespace MAction.SampleOnion.Domain.Entity.SAL;
 
 public class Category : BaseEntity

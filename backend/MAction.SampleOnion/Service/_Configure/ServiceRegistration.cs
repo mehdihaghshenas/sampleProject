@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using MAction.SampleOnion.Service.Category;
+using MAction.SipOnline.Service;
 
 namespace MAction.SampleOnion.Service.Configure
 {
@@ -29,6 +30,7 @@ namespace MAction.SampleOnion.Service.Configure
 
             PolicyLoader.AddPolices(typeof(DashboardPolicies).Assembly);
 
+            services.AddScoped<IServiceDependencyProvider, ServiceDependencyProvider>();
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<ICompanyServiceWithExpression, CompanyServiceWithExpression>();
             services.AddScoped<IMyProfileService, MyProfileService>();

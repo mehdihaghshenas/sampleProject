@@ -1,11 +1,13 @@
 ﻿using MAction.AspNetIdentity.Base;
 using MAction.BaseServices.Configure;
 using MAction.SampleOnion.Service.Configure;
+using MAction.SipOnline.Domain.Entity.Security;
 using MAction.WebHelpers.Middlewares;
 using MAction.WebHelpers.ServiceRegistration;
 using MAction.WebHelpers.SwaggerHelpers;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.OpenApi.Models;
+using MongoDB.Bson;
 using Newtonsoft.Json.Converters;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using static MAction.BaseMongoRepository.ServiceRegistration;
@@ -35,7 +37,7 @@ namespace MAction.SampleOnion.API
 
             services.ConfigureLocalization();
 
-            AspNetIdentity.Mongo.ServiceRegistration.AddConfigureService(services, connectionBuilder.ToString(),
+            AspNetIdentity.Mongo.ServiceRegistration.AddConfigureService<ApplicationUser, ApplicationRole, ObjectId>(services, connectionBuilder.ToString(),
                 new TempMongoDependencyProvider()
                 {
                     DatabaseName = connectionBuilder.DatabaseName
@@ -141,7 +143,7 @@ namespace MAction.SampleOnion.API
             //app.UseHttpsRedirection();
             app.UseDefaultFiles();
             app.UseCors("CorsPolicy");
-            app.CustomExceptionMidleware();
+            app.CustomExceptionMiddleware();
             AspNetIdentity.Mongo.ServiceRegistration.Configure(app);
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }

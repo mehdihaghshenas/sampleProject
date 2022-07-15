@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\BaseProjects\MAction.BaseEFRepository\MAction.BaseEFRepository.csproj" />
-    <ProjectReference Include="..\..\BaseProjects\MAction.BaseMongoRepository\MAction.BaseMongoRepository.csproj" />
+    <ProjectReference Include="../../BaseProjects/MAction.BaseMongoRepository/MAction.BaseMongoRepository.csproj" />
     <ProjectReference Include="..\Domain\MAction.SampleOnion.Domain.csproj" />
   </ItemGroup>
 

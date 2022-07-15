@@ -26,7 +26,7 @@ public class MongoRepository<T, TKey> : IMongoRepository<T, TKey> where T : IBas
     private readonly IMongoClient _mongoClient;
     private IMongoDatabase _db;
     private readonly IMongoCollection<T> _collection;
-    private IClientSessionHandle? _session = null;
+    private IClientSessionHandle _session = null;
 
     protected virtual string CollectionName
     {
@@ -53,17 +53,15 @@ public class MongoRepository<T, TKey> : IMongoRepository<T, TKey> where T : IBas
 
     public IQueryable<T> GetAll()
     {
-        Expression<Func<T, bool>>? langCondition = LanguageHelpers.GetLanguageExpressionCondition<T>();
+        Expression<Func<T, bool>> langCondition = LanguageHelpers.GetLanguageExpressionCondition<T>();
         if (langCondition != null)
             return _collection.AsQueryable().Where(langCondition);
         else
             return _collection.AsQueryable();
     }
 
-#pragma warning disable CS8613 // Nullability of reference types in return type doesn't match implicitly implemented member.
     public Task<T> GetAsync(object id, CancellationToken cancellationToken = default)
     {
-#pragma warning restore CS8613 // Nullability of reference types in return type doesn't match implicitly implemented member.
         return _collection.Find(ExpressionHelpers.GetIdFilter<T>(id)).FirstOrDefaultAsync(cancellationToken);
     }
 

@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
+#nullable enable
 namespace MAction.BaseMongoRepository
 {
     public class ConfigureMongoEntityTypes
@@ -54,3 +55,4 @@ namespace MAction.BaseMongoRepository
         }
     }
 }
+#nullable disable

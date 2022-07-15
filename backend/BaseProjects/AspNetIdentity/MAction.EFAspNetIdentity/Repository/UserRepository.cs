@@ -5,6 +5,7 @@ using MAction.AspNetIdentity.Base.Entities;
 using Microsoft.AspNetCore.Identity;
 
 namespace MAction.AspNetIdentity.EFCore.Repository;
+#nullable disable
 public class UserRepository<TUser, TRole, TKey> : EFRepository<TUser, TKey>, IUserRepository<TUser, TRole, TKey>
     where TUser : IdentityUser<TKey>, IUser, IBaseEntity, new()
     where TKey : IEquatable<TKey>
@@ -24,7 +25,7 @@ public class UserRepository<TUser, TRole, TKey> : EFRepository<TUser, TKey>, IUs
         return await users.FirstAsync();
     }
 
-    public async Task<TUser?> GetByPhoneNumber(string phone, CancellationToken cancellationToken)
+    public async Task<TUser> GetByPhoneNumber(string phone, CancellationToken cancellationToken)
     {
         return await GetAll().Where(p => p.PhoneNumber == phone).FirstOrDefaultAsync();
     }
@@ -41,3 +42,4 @@ public class UserRepository<TUser, TRole, TKey> : EFRepository<TUser, TKey>, IUs
     }
 
 }
+#nullable enable

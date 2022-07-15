@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\BaseProjects\MAction.BaseClasses\MAction.BaseClasses.csproj" />
+    <ProjectReference Include="../../BaseProjects/AspNetIdentity/MAction.MongoAspNetIdentity/MAction.AspNetIdentity.Mongo.csproj" />
   </ItemGroup>
 
 

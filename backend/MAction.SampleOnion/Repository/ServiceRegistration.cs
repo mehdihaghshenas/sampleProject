@@ -12,7 +12,7 @@ namespace MAction.SampleOnion.Repository
         public static void AddConfigureService(IServiceCollection services, IConfiguration configuration)
         {
             ConfigureMongoEntityTypes.ApplyConfigurationsFromAssembly(typeof(SaleCompanyRegisterConfiguration).Assembly);
-            services.AddTransient(typeof(IMongoRepository<>), typeof(MongoRepository<>));
+            services.AddTransient(typeof(IBaseRepositoryInt<>), typeof(BaseRepositoryInt<>));
             var connectionBuilder = new MongoUrlBuilder(configuration.GetConnectionString("MactionMongoDBConnection"));
             services.AddTransient<IMongoDependencyProvider, TempMongoDependencyProvider>(x => new() { DatabaseName = connectionBuilder.DatabaseName });
             services.AddTransient<IMongoClient, MongoClient>(p =>

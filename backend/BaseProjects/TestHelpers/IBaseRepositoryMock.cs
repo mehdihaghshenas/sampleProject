@@ -13,7 +13,6 @@ namespace TestHelpers
         public IBaseRepositoryMock()
         {
             _entities = new List<T>();
-#pragma warning disable CS8603 // Possible null reference return.
             MockRepository = new Mock<Repo>();
 
             MockRepository.Setup(x => x.GetAll()).Returns(() => _entities.AsQueryable());
@@ -68,7 +67,6 @@ namespace TestHelpers
                     _entities.Add(x);
                     return Task.FromResult(1);
                 });
-#pragma warning restore CS8603 // Possible null reference return.
         }
     }
 }

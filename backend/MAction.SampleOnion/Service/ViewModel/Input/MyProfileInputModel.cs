@@ -2,7 +2,7 @@ using MAction.BaseClasses;
 using FluentValidation;
 using PhoneNumbers;
 using System;
-using MAction.AspNetIdentity.Mongo.Domain;
+using MAction.SipOnline.Domain.Entity.Security;
 
 namespace MAction.SampleOnion.Service.ViewModel.Input;
 

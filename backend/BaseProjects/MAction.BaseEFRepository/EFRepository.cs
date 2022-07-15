@@ -32,9 +32,7 @@ public class EFRepository<T,TKey> : IEFRepository<T,TKey> where T : class, IBase
     }
 
 
-#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-    public T? Get(TKey id)
-#pragma warning restore CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+    public T Get(TKey id)
     {
 
         var expression = ExpressionHelpers.GetIdFilter<T>(id);
@@ -46,9 +44,7 @@ public class EFRepository<T,TKey> : IEFRepository<T,TKey> where T : class, IBase
         return entities.AsQueryable<T>();
     }
 
-#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
-    public Task<T?> GetAsync(object id, CancellationToken cancellationToken = default)
-#pragma warning restore CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+    public Task<T> GetAsync(object id, CancellationToken cancellationToken = default)
     {
         var expression = ExpressionHelpers.GetIdFilter<T>(id);
         return entities.Where(expression).FirstOrDefaultAsync(cancellationToken);

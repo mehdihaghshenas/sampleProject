@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using MAction.BaseClasses;
-using MAction.BaseClasses.Helpers;
+using MAction.BaseClasses.Language;
 
 namespace MAction.SampleOnion.Service.ViewModel.Output;
 

@@ -14,10 +14,8 @@ namespace MAction.BaseClasses
         void SetHasSystemPrivilege(bool value);
 
         IQueryable<T> GetAll();
-#nullable enable
-        T? Get(TKey id);
-        Task<T?> GetAsync(object id, CancellationToken cancellationToken = default);
-#nullable disable
+        T Get(TKey id);
+        Task<T> GetAsync(object id, CancellationToken cancellationToken = default);
         void Insert(T entity);
         Task InsertAsync(T entity, CancellationToken cancellationToken = default);
         void Update(T entity);

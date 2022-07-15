@@ -1,5 +1,5 @@
-﻿using MAction.AspNetIdentity.Mongo.Domain;
-using MAction.SampleOnion.Service.Company;
+﻿using MAction.SampleOnion.Service.Company;
+using MAction.SipOnline.Domain.Entity.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System;

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
 using MAction.BaseClasses.Exceptions;
-using MAction.AspNetIdentity.Mongo.Domain;
+using MAction.SipOnline.Domain.Entity.Security;
 
 namespace MAction.SampleOnion.Service.MyProfile
 {
@@ -13,16 +13,18 @@ namespace MAction.SampleOnion.Service.MyProfile
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IMapper _mapper;
 
-        public MyProfileService(UserManager<ApplicationUser> userManager, IHttpContextAccessor httpContextAccessor)
+        public MyProfileService(UserManager<ApplicationUser> userManager, IHttpContextAccessor httpContextAccessor, IMapper mapper)
         {
             this.userManager = userManager;
             _httpContextAccessor = httpContextAccessor;
+            _mapper = mapper;
         }
 
         public async Task<bool> UpdateAsync(MyProfileInputModel model)
         {
-            ApplicationUser user = model.ToEntity();
+            ApplicationUser user = model.ToEntity(_mapper);
             var requestUser = await userManager.FindByNameAsync(user.UserName);
             var loggedInUserId = userManager.GetUserId(_httpContextAccessor.HttpContext.User);
             if(requestUser == null || loggedInUserId != requestUser.Id.ToString())
@@ -46,7 +48,7 @@ namespace MAction.SampleOnion.Service.MyProfile
 
          public async Task<bool> UpdateProfilePasswordAsync(MyProfileChangePasswordInputModel model)
         {
-             ApplicationUser user = model.ToEntity();
+             ApplicationUser user = model.ToEntity(_mapper);
             var requestUser = await userManager.FindByNameAsync(user.UserName);
             var loggedInUserId = userManager.GetUserId(_httpContextAccessor.HttpContext.User);
             if(requestUser == null || loggedInUserId != requestUser.Id.ToString())

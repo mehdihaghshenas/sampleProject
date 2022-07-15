@@ -3,8 +3,10 @@ using MAction.BaseClasses;
 using MAction.BaseMongoRepository;
 using MAction.BaseServices;
 using MAction.SampleOnion.Domain.Entity.SAL;
+using MAction.SampleOnion.Repository;
 using MAction.SampleOnion.Service.ViewModel.Input;
 using MAction.SampleOnion.Service.ViewModel.Output;
+using MAction.SipOnline.Service;
 using MongoDB.Bson;
 using System;
 using System.Collections.Generic;
@@ -13,32 +15,31 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MAction.SampleOnion.Service.Company
+namespace MAction.SampleOnion.Service.Company;
+
+public class CompanyServiceWithExpression : BaseServiceInt<SaleCompany, SaleCompanyInputModel, SaleCompanyOutputModel>, ICompanyServiceWithExpression,
+    ISelectWithModelExpression<SaleCompany, SaleCompanyOutputModel>,
+    IInputModelCustomMapper<SaleCompany, SaleCompanyInputModel>
 {
-    public class CompanyServiceWithExpression : BaseService<SaleCompany, SaleCompanyInputModel, SaleCompanyOutputModel>, ICompanyServiceWithExpression,
-        ISelectWithModelExpression<SaleCompany, SaleCompanyOutputModel>,
-        IInputModelCustomMapper<SaleCompany, SaleCompanyInputModel>
+    public CompanyServiceWithExpression(IBaseRepositoryInt<SaleCompany> repository, IMapper mapper, IServiceDependencyProvider dependencyProvider) : base(repository, mapper, dependencyProvider)
     {
-        public CompanyServiceWithExpression(IMongoRepository<SaleCompany> repository, IMapper mapper) : base(repository, mapper)
-        {
-        }
+    }
 
-        public SaleCompany MapInputToEnity(SaleCompanyInputModel inputModel)
+    public SaleCompany MapInputToEnity(SaleCompanyInputModel inputModel)
+    {
+        return new()
         {
-            return new()
-            {
-                CompanyName = inputModel.Name,
-                Id = inputModel.Id
-            };
-        }
+            CompanyName = inputModel.Name,
+            Id = inputModel.Id
+        };
+    }
 
-        public Expression<Func<SaleCompany, SaleCompanyOutputModel>> SelectExpression()
+    public Expression<Func<SaleCompany, SaleCompanyOutputModel>> SelectExpression()
+    {
+        return x => new SaleCompanyOutputModel()
         {
-            return x => new SaleCompanyOutputModel()
-            {
-                Name = x.CompanyName,
-                Id = x.Id
-            };
-        }
+            Name = x.CompanyName,
+            Id = x.Id
+        };
     }
 }
