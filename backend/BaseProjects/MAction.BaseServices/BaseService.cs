@@ -317,7 +317,7 @@ public class BaseServiceWithKey<TKey, TEntity, TInputModel, TOutputModel> : IBas
         }
 
         TOutputModel output;
-        if (this is ISelectWithModelMapper<TEntity, TInputModel> &&
+        if (this is ISelectWithModelMapper<TEntity, TOutputModel> &&
             mappingType != OutputModelMappingTypeEnum.UseAutoMapper)
             output = ((ISelectWithModelMapper<TEntity, TOutputModel>)this).MapEntityToOutput(entity);
         else
