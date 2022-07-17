@@ -286,8 +286,6 @@ public class BaseServiceWithKey<TKey, TEntity, TInputModel, TOutputModel> : IBas
             case OutputModelMappingTypeEnum.UseAutoMapper:
             case OutputModelMappingTypeEnum.PureAutoMapper:
                 break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(mappingType), mappingType, null);
         }
 
         TEntity entity;
@@ -312,8 +310,6 @@ public class BaseServiceWithKey<TKey, TEntity, TInputModel, TOutputModel> : IBas
             case OutputModelMappingTypeEnum.UseAutoMapper:
             case OutputModelMappingTypeEnum.PureAutoMapper:
                 break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(mappingType), mappingType, null);
         }
 
         TOutputModel output;
