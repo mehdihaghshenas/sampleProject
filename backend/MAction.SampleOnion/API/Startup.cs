@@ -1,4 +1,5 @@
 ﻿using MAction.AspNetIdentity.Base;
+using MAction.BaseClasses.Language;
 using MAction.BaseServices.Configure;
 using MAction.SampleOnion.Service.Configure;
 using MAction.SipOnline.Domain.Entity.Security;
@@ -107,6 +108,7 @@ namespace MAction.SampleOnion.API
             {
                 options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
                 options.SerializerSettings.Converters.Add(new StringEnumConverter());
+                options.SerializerSettings.Converters.Add(new IgnoreTranslationInnerNameConverter());
                 options.SerializerSettings.DateParseHandling = Newtonsoft.Json.DateParseHandling.None;
             });
 
