@@ -42,6 +42,7 @@ namespace MAction.BaseEFRepository
                 }
             foreach (var maptype in lstofmapClass)
             {
+                OnModelCreatingAddLanguage(modelBuilder, maptype);
                 var mapobj = maptype.GetConstructor(Array.Empty<Type>()).Invoke(Array.Empty<object>());
                 var methodinfo = maptype.GetMethod("Configure");
                 var EntityMethodInfo = modelBuilder.GetType().GetMethod("Entity", Array.Empty<Type>());
@@ -53,27 +54,44 @@ namespace MAction.BaseEFRepository
             //modelBuilder.HasAnnotation("Relational:Collation", "Persian_100_CI_AI");
 
         }
-        public static void OnModelCreatingAddLanguage(ModelBuilder modelBuilder)
+        public static void OnModelCreatingAddLanguage(ModelBuilder modelBuilder, Type maptype)
         {
-            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-            {
-                foreach (var property in entityType.GetProperties())
-                {
-                    if (property.ClrType.IsEnum && property.ClrType == typeof(LanguageEnum))
-                    {
-                        var converterType = typeof(EnumToStringConverter<>)
-                            .MakeGenericType(property.ClrType);
-                        var converter = (ValueConverter)Activator.CreateInstance(converterType, (object)null);
-                        property.SetValueConverter(converter);
-                    }
-                    else if (property.ClrType == typeof(Translation))
-                    {
-                        var converterType = typeof(TranslationConvertor);
-                        var converter = (ValueConverter)Activator.CreateInstance(converterType, (object)null);
-                        property.SetValueConverter(converter);
-                    }
+            //foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            //{
+            //    foreach (var property in entityType.GetProperties())
+            //    {
+            //        if (property.ClrType.IsEnum && property.ClrType == typeof(LanguageEnum))
+            //        {
+            //            var converterType = typeof(EnumToStringConverter<>)
+            //                .MakeGenericType(property.ClrType);
+            //            var converter = (ValueConverter)Activator.CreateInstance(converterType, (object)null);
+            //            property.SetValueConverter(converter);
+            //        }
+            //        else if (property.ClrType == typeof(Translation))
+            //        {
+            //            var converterType = typeof(TranslationConvertor);
+            //            var converter = (ValueConverter)Activator.CreateInstance(converterType, (object)null);
+            //            property.SetValueConverter(converter);
+            //        }
 
+            //    }
+            //}
+            foreach (var entityType in maptype.GetProperties())
+            {
+                if (entityType.PropertyType == typeof(LanguageEnum))
+                {
+                    var converterType = typeof(EnumToStringConverter<>)
+                        .MakeGenericType(entityType.PropertyType);
+                    var converter = (ValueConverter)Activator.CreateInstance(converterType, (object)null);
+                    modelBuilder.Entity(maptype).Property(typeof(LanguageEnum), entityType.Name).HasConversion(converter);
                 }
+                else if (entityType.PropertyType == typeof(Translation))
+                {
+                    var converterType = typeof(TranslationConvertor);
+                    var converter = (ValueConverter)Activator.CreateInstance(converterType, (object)null);
+                    modelBuilder.Entity(maptype).Property(typeof(Translation), entityType.Name).HasConversion(converter);
+                }
+
             }
         }
 

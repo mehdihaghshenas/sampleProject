@@ -33,7 +33,6 @@ namespace MAction.BaseEFRepository
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             DBContextExtensionAndConfiguration.OnModelCreating(modelBuilder, _domainType, _domainTypes);
-            DBContextExtensionAndConfiguration.OnModelCreatingAddLanguage(modelBuilder);
             base.OnModelCreating(modelBuilder);
             //using reflectyion to Map Data
 
