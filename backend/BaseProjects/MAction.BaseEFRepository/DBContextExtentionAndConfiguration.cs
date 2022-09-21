@@ -18,7 +18,7 @@ namespace MAction.BaseEFRepository
 {
     public static class DBContextExtensionAndConfiguration
     {
-        public static void OnModelCreating(ModelBuilder modelBuilder, Type _domainType, Type[] _domainTypes = null)
+        public static void OnModelCreating(ModelBuilder modelBuilder, bool addLanguageTranslation, Type _domainType, Type[] _domainTypes = null)
         {
             var lstofmapClass = Assembly.GetAssembly(_domainType).GetTypes().
                    Where(x => x.IsAssignableToGenericType(typeof(IBaseEntityTypeConfiguration<>)) &&
@@ -42,7 +42,8 @@ namespace MAction.BaseEFRepository
                 }
             foreach (var maptype in lstofmapClass)
             {
-                OnModelCreatingAddLanguage(modelBuilder, maptype);
+                if (addLanguageTranslation)
+                    OnModelCreatingAddLanguage(modelBuilder, maptype);
                 var mapobj = maptype.GetConstructor(Array.Empty<Type>()).Invoke(Array.Empty<object>());
                 var methodinfo = maptype.GetMethod("Configure");
                 var EntityMethodInfo = modelBuilder.GetType().GetMethod("Entity", Array.Empty<Type>());
