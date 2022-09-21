@@ -32,7 +32,7 @@ namespace MAction.BaseEFRepository
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            DBContextExtensionAndConfiguration.OnModelCreating(modelBuilder, _domainType, _domainTypes);
+            DBContextExtensionAndConfiguration.OnModelCreating(modelBuilder, true,_domainType, _domainTypes);
             base.OnModelCreating(modelBuilder);
             //using reflectyion to Map Data
 
