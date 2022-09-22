@@ -19,7 +19,7 @@ public class ServiceRegistration
         where TContext : IdentityContext<TUser, TRole, TKey>
         where TUser : IdentityUser<TKey>, IUser, IBaseEntity, new()
         where TRole : IdentityRole<TKey>, IRole, IBaseEntity, new()
-        where TKey : class, IEquatable<TKey>
+        where TKey : IEquatable<TKey>
     {
         if (!userEmailSender.IsAssignableFrom(typeof(IUserEmailSender)))
             throw new Exception("userEmailSender should be assignble from IUserEmailSender");
