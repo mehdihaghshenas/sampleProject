@@ -21,7 +21,7 @@ public class ServiceRegistration
         where TRole : IdentityRole<TKey>, IRole, IBaseEntity, new()
         where TKey : IEquatable<TKey>
     {
-        if (!userEmailSender.IsAssignableFrom(typeof(IUserEmailSender)))
+        if (!typeof(IUserEmailSender).IsAssignableFrom(userEmailSender))
             throw new Exception("userEmailSender should be assignble from IUserEmailSender");
 
         services.AddScoped(typeof(IUserEmailSender), userEmailSender);
