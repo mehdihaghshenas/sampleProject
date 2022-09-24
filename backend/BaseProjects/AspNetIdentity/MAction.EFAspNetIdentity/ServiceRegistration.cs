@@ -11,6 +11,7 @@ using MAction.AspNetIdentity.EFCore.Repository;
 using Microsoft.AspNetCore.Identity;
 using MAction.AspNetIdentity.Base.Entities;
 using MAction.AspNetIdentity.Base.Services;
+using MAction.AspNetIdentity.Base.Repository;
 
 namespace MAction.BaseClasses;
 public class ServiceRegistration
@@ -31,7 +32,9 @@ public class ServiceRegistration
         services.AddScoped<IUserRepository<TUser, TRole, TKey>, UserRepository<TUser, TRole, TKey>>();
         services.AddScoped<IRoleRepository<TRole, TKey>, RoleRepository<TUser, TRole, TKey>>();
 
-        services.AddIdentityCore<TUser>(identity =>
+        services.AddSingleton<IVerificationCodeSingletonRepository, VerificationCodeSingletonRepository>();
+
+        services.AddIdentity<TUser,TRole>(identity =>
         {
             identity.Password.RequiredLength = jwtSettings.RequiredLength;
             identity.Password.RequireDigit = jwtSettings.PasswordRequireDigit;
