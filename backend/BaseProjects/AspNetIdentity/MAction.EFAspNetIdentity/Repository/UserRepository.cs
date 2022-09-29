@@ -6,14 +6,15 @@ using Microsoft.AspNetCore.Identity;
 
 namespace MAction.AspNetIdentity.EFCore.Repository;
 #nullable disable
-public class UserRepository<TUser, TRole, TKey> : EFRepository<TUser, TKey>, IUserRepository<TUser, TRole, TKey>
+public class UserRepository<TContext, TUser, TRole, TKey> : EFRepository<TUser, TKey>, IUserRepository<TUser, TRole, TKey>
     where TUser : IdentityUser<TKey>, IUser, IBaseEntity, new()
     where TKey : IEquatable<TKey>
     where TRole : IdentityRole<TKey>, IRole, IBaseEntity, new()
+    where TContext : IdentityContext<TUser, TRole, TKey>
 {
     private readonly IRoleRepository<TRole, TKey> _roleRepository;
     private readonly IdentityContext<TUser, TRole, TKey> _identityContext;
-    public UserRepository(IdentityContext<TUser, TRole, TKey> context, IRoleRepository<TRole, TKey> roleRepository, IBaseServiceDependencyProvider baseServiceDependencyProvider) : base(context, baseServiceDependencyProvider)
+    public UserRepository(TContext context, IRoleRepository<TRole, TKey> roleRepository, IBaseServiceDependencyProvider baseServiceDependencyProvider) : base(context, baseServiceDependencyProvider)
     {
         this._roleRepository = roleRepository;
         _identityContext = context;

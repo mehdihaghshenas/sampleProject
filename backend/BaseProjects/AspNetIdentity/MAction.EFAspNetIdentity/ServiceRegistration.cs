@@ -29,8 +29,8 @@ public class ServiceRegistration
         services.AddScoped<IJWTService, JwtService<TUser, TRole, TKey>>();
         services.AddScoped<IUserService, UserService<TUser, TRole, TKey>>();
         services.AddScoped<IRoleService, RoleService<TRole, TKey>>();
-        services.AddScoped<IUserRepository<TUser, TRole, TKey>, UserRepository<TUser, TRole, TKey>>();
-        services.AddScoped<IRoleRepository<TRole, TKey>, RoleRepository<TUser, TRole, TKey>>();
+        services.AddScoped<IUserRepository<TUser, TRole, TKey>, UserRepository<TContext, TUser, TRole, TKey>>();
+        services.AddScoped<IRoleRepository<TRole, TKey>, RoleRepository<TContext, TUser, TRole, TKey>>();
 
         services.AddSingleton<IVerificationCodeSingletonRepository, VerificationCodeSingletonRepository>();
 
