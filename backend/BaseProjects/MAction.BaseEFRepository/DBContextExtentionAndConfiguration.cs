@@ -1,4 +1,5 @@
-﻿using MAction.BaseClasses.Extensions;
+﻿using MAction.BaseClasses;
+using MAction.BaseClasses.Extensions;
 using MAction.BaseClasses.Language;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -42,8 +43,6 @@ namespace MAction.BaseEFRepository
                 }
             foreach (var maptype in lstofmapClass)
             {
-                if (addLanguageTranslation)
-                    OnModelCreatingAddLanguage(modelBuilder, maptype);
                 var mapobj = maptype.GetConstructor(Array.Empty<Type>()).Invoke(Array.Empty<object>());
                 var methodinfo = maptype.GetMethod("Configure");
                 var EntityMethodInfo = modelBuilder.GetType().GetMethod("Entity", Array.Empty<Type>());
@@ -51,6 +50,20 @@ namespace MAction.BaseEFRepository
                 var entity = EntityMethodInfo.Invoke(modelBuilder, Array.Empty<object>());
                 methodinfo.Invoke(mapobj, new object[] { entity });
 
+            }
+            if (addLanguageTranslation)
+            {
+                var entites = Assembly.GetAssembly(_domainType).GetTypes().Where(x => typeof(IBaseEntity).IsAssignableFrom(x)).ToList();
+                if (_domainTypes != null)
+                    foreach (var t in _domainTypes)
+                    {
+                        entites.AddRange(Assembly.GetAssembly(t).GetTypes().Where(x => typeof(IBaseEntity).IsAssignableFrom(x)).ToList());
+
+                    }
+                foreach (var maptype in entites)
+                {
+                    OnModelCreatingAddLanguage(modelBuilder, maptype);
+                }
             }
             //modelBuilder.HasAnnotation("Relational:Collation", "Persian_100_CI_AI");
 
@@ -129,6 +142,7 @@ namespace MAction.BaseEFRepository
         }
     }
 
+
     //you can create custom value convertor too
     public class TranslationConvertor : ValueConverter<Translation, string>
     {
@@ -146,8 +160,15 @@ namespace MAction.BaseEFRepository
 
         public static Translation ToTranslation(string stringValue)
         {
-            var dic = JsonConvert.DeserializeObject<Dictionary<string, string>>(stringValue);
-            return new Translation() { Translate = dic };
+            try
+            {
+                var dic = JsonConvert.DeserializeObject<Dictionary<string, string>>(stringValue);
+                return new Translation() { Translate = dic };
+            }
+            catch (Exception)
+            {
+                return new Translation();
+            }
         }
     }
 }
