@@ -20,13 +20,14 @@ public interface IMongoRepository<TEntity, TKey> : IBaseRepository<TEntity, TKey
 {
 }
 
+
 public class MongoRepository<T, TKey> : IMongoRepository<T, TKey> where T : IBaseEntity
 {
     private readonly IBaseServiceDependencyProvider _baseServiceDependencyProvider;
     private readonly IMongoClient _mongoClient;
-    private IMongoDatabase _db;
+    private readonly IMongoDatabase _db;
     private readonly IMongoCollection<T> _collection;
-    private IClientSessionHandle _session = null;
+    private IClientSessionHandle? _session = null;
 
     protected virtual string CollectionName
     {
@@ -53,7 +54,7 @@ public class MongoRepository<T, TKey> : IMongoRepository<T, TKey> where T : IBas
 
     public IQueryable<T> GetAll()
     {
-        Expression<Func<T, bool>> langCondition = LanguageHelpers.GetLanguageExpressionCondition<T>();
+        Expression<Func<T, bool>>? langCondition = LanguageHelpers.GetLanguageExpressionCondition<T>();
         if (langCondition != null)
             return _collection.AsQueryable().Where(langCondition);
         else

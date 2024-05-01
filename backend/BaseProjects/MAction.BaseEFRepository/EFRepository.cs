@@ -1,6 +1,7 @@
 ﻿using MAction.BaseClasses;
 using MAction.BaseClasses.Exceptions;
 using MAction.BaseClasses.Helpers;
+using MAction.BaseClasses.Language;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,8 @@ public interface IEFRepository<TEntity,TKey> : IBaseRepository<TEntity,TKey> whe
 {
 }
 
-public class EFRepository<T,TKey> : IEFRepository<T,TKey> where T : class, IBaseEntity
+
+public class EFRepository<T, TKey> : IEFRepository<T, TKey> where T : class, IBaseEntity
 {
     private readonly DbContext _context;
     internal DbSet<T> entities;
@@ -41,7 +43,11 @@ public class EFRepository<T,TKey> : IEFRepository<T,TKey> where T : class, IBase
 
     public IQueryable<T> GetAll()
     {
-        return entities.AsQueryable<T>();
+        Expression<Func<T, bool>>? langCondition = LanguageHelpers.GetLanguageExpressionCondition<T>();
+        if (langCondition != null)
+            return entities.AsQueryable().Where(langCondition);
+        else
+            return entities.AsQueryable();
     }
 
     public Task<T> GetAsync(object id, CancellationToken cancellationToken = default)
@@ -57,11 +63,13 @@ public class EFRepository<T,TKey> : IEFRepository<T,TKey> where T : class, IBase
         {
             throw new ArgumentNullException(nameof(entity));
         }
+        LanguageHelpers.SetLanguagePropertyInfo(entity);
+
         if (entity.GetType().IsSubclassOf(typeof(BaseEntityWithCreationInfo)))
         {
             (entity as BaseEntityWithCreationInfo).CreateAt = _baseServiceDependencyProvider.HasSystemPrivilege() ? DateTimeOffset.UtcNow : TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, _baseServiceDependencyProvider.TimeZoneConverterService.GetClientTimeZoneInfo());
             (entity as BaseEntityWithCreationInfo).TimeZone = _baseServiceDependencyProvider.TimeZoneConverterService.GetClientTimeZoneInfo().StandardName; // TODO Get from basedependency provider
-            (entity as BaseEntityWithCreationInfo).UserCreationId = _baseServiceDependencyProvider.UserId.ToString() ; //TODO Get From base dependency
+            (entity as BaseEntityWithCreationInfo).UserCreationId = _baseServiceDependencyProvider.UserId != null ? _baseServiceDependencyProvider.UserId.ToString() : null; //TODO Get From base dependency
         }
         //For Check Permission in add with out savechange we have create a pipeline to test on save change
     }
@@ -180,6 +188,8 @@ public class EFRepository<T,TKey> : IEFRepository<T,TKey> where T : class, IBase
 
     private void AttachIfNotAttached(T entity)
     {
+        LanguageHelpers.SetLanguagePropertyInfo(entity);
+
         if (_context.Entry<T>(entity).State != EntityState.Modified)
         {
             _context.Attach<T>(entity);
@@ -241,7 +251,6 @@ public class EFRepository<T,TKey> : IEFRepository<T,TKey> where T : class, IBase
         {
             throw new ArgumentNullException(nameof(entity));
         }
-
         AttachIfNotAttached(entity);
     }
 

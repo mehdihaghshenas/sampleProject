@@ -66,6 +66,7 @@ namespace MAction.SampleOnion.Infrastructure
             };
             await _userManager.CreateAsync(user, "useruser");
             await _userManager.AddToRoleAsync(user, "user");
+
             token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             await _userManager.ConfirmEmailAsync(user, token);
             _companyService.SetHasSystemPrivilege(true);
