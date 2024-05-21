@@ -16,10 +16,12 @@ export class CreateComapnyComponent implements OnInit {
   }
 
   submitForm() {
-    this.cservice.insertCompany(this.companyForm.value).subscribe(c => {
-      alert("success")
-    },(e)=>{
-      console.log(e);
-    })
+    this.cservice.insertCompany(this.companyForm.value).subscribe({
+      next: (v) => alert("success"),
+      error: (e) => {
+        console.log(e);
+      },
+      complete: () => console.log("submit form complete")
+    });
   }
 }
