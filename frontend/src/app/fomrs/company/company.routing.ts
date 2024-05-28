@@ -23,7 +23,7 @@ const routes: Routes = [
         path: 'edit',
         component: EditComapnyComponent,
         // Comment this to can test interceptor redirect
-        // canActivate: [AuthGuard]
+        canActivate: [AuthGuard]
       },
       {
         path: '**', redirectTo: 'list', pathMatch: 'full'
