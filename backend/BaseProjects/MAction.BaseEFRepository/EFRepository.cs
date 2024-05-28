@@ -127,18 +127,18 @@ public class EFRepository<T, TKey> : IEFRepository<T, TKey> where T : class, IBa
 
             //TODO Check permission
             if (!hasoldtran)
-                transaction.Commit();
+                await transaction.CommitAsync();
         }
         catch (UnauthorizedException)
         {
             if (!hasoldtran)
-                transaction.Rollback();
+                await transaction.RollbackAsync();
             throw;
         }
         catch (Exception)
         {
             if (!hasoldtran)
-                transaction.Rollback();
+                await transaction.RollbackAsync();
             throw;
         }
         return entity;
@@ -269,12 +269,25 @@ public class EFRepository<T, TKey> : IEFRepository<T, TKey> where T : class, IBa
     public async Task<int> UpdateWithSaveChangeAsync(T entity, CancellationToken cancellationToken = default)
     {
         await UpdateAsync(entity, cancellationToken);
+        bool hasoldtran = _context.Database.CurrentTransaction != null;
+        var transaction = _context.Database.CurrentTransaction ?? _context.Database.BeginTransaction(System.Data.IsolationLevel.ReadUncommitted);
         try
         {
-            return await SaveChangesAsync(cancellationToken);
+            var res =await SaveChangesAsync(cancellationToken);
+            if (!hasoldtran)
+                await transaction.CommitAsync();
+            return res;
         }
         catch (DbUpdateConcurrencyException)
         {
+            if (!hasoldtran)
+                await transaction.RollbackAsync();
+            throw;
+        }
+        catch (Exception)
+        {
+            if (!hasoldtran)
+                await transaction.RollbackAsync();
             throw;
         }
     }
