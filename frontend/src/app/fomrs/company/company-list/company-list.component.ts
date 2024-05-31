@@ -11,11 +11,14 @@ export class CompanyListComponent implements OnInit {
 
   constructor(private companyService: CompanyService) { }
 
-  compnayList: ComapnyOutput[]=[]
+  compnayList: ComapnyOutput[] = []
   ngOnInit() {
-    this.companyService.getAllCompanes(emptyFilter).subscribe(c=>{
-      this.compnayList = c.data;
-    })
+    this.companyService.getAllCompanes(emptyFilter).subscribe(
+      {
+        next: c => {
+          this.compnayList = c.data;
+        }
+      })
   }
 
 }

@@ -2,17 +2,36 @@
   <p class="text-muted">Edit Company</p>
   <div class="input-group mb-3">
     <label title="Company Code">Company Code</label>
-    <input type="text" class="form-control" name="id" ngModel
-      placeholder="id"  required>
+    <input type="text" class="form-control" name="id"
+      placeholder="id" [ngModel]="company.id" required>
   </div>
   <div class="input-group mb-4">
     <label title="CompanyName">Company Name</label>
-    <input type="text" ngModel class="form-control" name="name"
-      placeholder="name"  required>
+    <input type="text" class="form-control" name="name"
+      placeholder="name" [ngModel]="company.name"  required>
   </div>
   <div class="row">
     <div class="col-md-4">
-      <button type="submit" appButton class="btn-block">create</button>
+      <button type="submit" appButton class="btn-block">Edit</button>
+    </div>
+  </div>
+</form>
+<hr>
+<form #companyEditForm2="ngForm" (submit)="submitForm2()">
+  <p class="text-muted">Edit Company</p>
+  <div class="input-group mb-3">
+    <label title="Company Code">Company Code</label>
+    <input type="text" class="form-control" name="id"
+      placeholder="id" [(ngModel)]="company.id" required>
+  </div>
+  <div class="input-group mb-4">
+    <label title="CompanyName">Company Name</label>
+    <input type="text" class="form-control" name="comapnyName"
+      placeholder="name" [(ngModel)]="company.name" required>
+  </div>
+  <div class="row">
+    <div class="col-md-4">
+      <button type="submit" appButton class="btn-block">Edit</button>
     </div>
   </div>
 </form>
