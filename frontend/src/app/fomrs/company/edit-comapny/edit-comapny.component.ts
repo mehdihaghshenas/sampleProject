@@ -15,12 +15,12 @@ export class EditComapnyComponent implements OnInit {
   @ViewChild('companyEditForm') companyEditForm: NgForm
   company: CompanyInput
   constructor(private cservice: CompanyService, private router: Router) {
-    // solution2
+    // solution2 if you want use router you should run it in ctor
     // this.state = (this.router.getCurrentNavigation().extras.state['item']);
   }
   state: ComapnyOutput;
   ngOnInit() {
-    // solution1
+    // solution1 if you want to use window.history.state.item you should use it ngOnInit
     this.state = window.history.state.item;
     // this.company.name = this.state.name;
     // this.company.id = this.state.id.toString();
