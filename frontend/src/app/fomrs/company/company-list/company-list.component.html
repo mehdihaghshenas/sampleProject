@@ -7,7 +7,8 @@
     <tr class="item" *ngFor="let item of compnayList">
       <td>{{item.id}}</td>
       <td>{{item.name}}</td>
-      <td><a [routerLink]="['/company/edit']" [state]="item">Edit</a></td>
+      <td><a [routerLink]="['/company/edit']" [state]=" {'item':item}">Edit</a></td>
+      <td><button (click)="sendDataToEdit(item)">Edit</button></td>
     </tr>
   </table>
 </div>

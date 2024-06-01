@@ -3,7 +3,7 @@ import { NgForm } from '@angular/forms';
 import { CompanyService } from '../application/company.service';
 import { Observable, map } from 'rxjs';
 import { ComapnyOutput, CompanyInput } from '../application/company.viewmodel';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-edit-comapny',
@@ -14,12 +14,14 @@ export class EditComapnyComponent implements OnInit {
 
   @ViewChild('companyEditForm') companyEditForm: NgForm
   company: CompanyInput
-  constructor(private cservice: CompanyService) { }
+  constructor(private cservice: CompanyService, private router: Router) {
+    // solution2
+    // this.state = (this.router.getCurrentNavigation().extras.state['item']);
+  }
   state: ComapnyOutput;
   ngOnInit() {
-    this.state = window.history.state;
-    console.log(this.state);
-
+    // solution1
+    this.state = window.history.state.item;
     // this.company.name = this.state.name;
     // this.company.id = this.state.id.toString();
     this.company = { id: this.state.id.toString(), name: this.state.name } as CompanyInput;

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CompanyService } from '../application/company.service';
 import { ComapnyOutput, emptyFilter } from '../application/company.viewmodel';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-company-list',
@@ -8,8 +9,11 @@ import { ComapnyOutput, emptyFilter } from '../application/company.viewmodel';
   styleUrls: ['./company-list.component.css']
 })
 export class CompanyListComponent implements OnInit {
+  sendDataToEdit(selected: ComapnyOutput) {
+    this.router.navigate(['/company/edit'], { state: { 'item': selected } });
+  }
 
-  constructor(private companyService: CompanyService) { }
+  constructor(private companyService: CompanyService, private router: Router) { }
 
   compnayList: ComapnyOutput[] = []
   ngOnInit() {
